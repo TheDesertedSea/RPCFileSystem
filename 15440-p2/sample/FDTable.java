@@ -1,3 +1,9 @@
+/**
+ * FDTable.java
+ * 
+ * @author Cundao Yu <cundaoy@andrew.cmu.edu>
+ */
+
 import java.util.ArrayList;
 import java.util.List;
 

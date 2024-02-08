@@ -1,3 +1,9 @@
+/**
+ * WriteHandler.java
+ * 
+ * @author Cundao Yu <cundaoy@andrew.cmu.edu>
+ */
+
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
@@ -19,12 +25,15 @@ public class WriteHandler {
         }
 
         OpenFile file = fdTable.getOpenFile(fd);
+        if(file.isDirectory()) {
+            return FileHandling.Errors.EBADF;
+        }
         if(!file.canWrite()) {
-            return FileHandling.Errors.EPERM;
+            return FileHandling.Errors.EBADF;
         }
 
         try {
-            file.getRandomAccessFile().write(buf);
+            file.write(buf);
             return buf.length;
         } catch (IOException e) {
             System.out.println(e);

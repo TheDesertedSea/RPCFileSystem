@@ -1,3 +1,9 @@
+/**
+ * UnlinkHandler.java
+ * 
+ * @author Cundao Yu <cundaoy@andrew.cmu.edu>
+ */
+
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
@@ -14,6 +20,7 @@ public class UnlinkHandler{
             return res;
         }
         File file = new File(path);
+        Logger.logFileInfo(file);
         if(!file.exists()) {
             return FileHandling.Errors.ENOENT;
         }

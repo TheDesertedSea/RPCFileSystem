@@ -1,3 +1,9 @@
+/**
+ * ReadHandler.java
+ * 
+ * @author Cundao Yu <cundaoy@andrew.cmu.edu>
+ */
+
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
@@ -19,8 +25,12 @@ public class ReadHandler {
         }
 
         OpenFile file = fdTable.getOpenFile(fd);
+        if(file.isDirectory()) {
+            return FileHandling.Errors.EISDIR;
+        }
         try {
-            return file.getRandomAccessFile().read(buf) == -1 ? 0 : buf.length;
+            long readCount = file.read(buf);
+            return readCount == -1 ? 0 : readCount;
         } catch (IOException e) {
             System.out.println(e);
             System.exit(-1);

@@ -1,5 +1,5 @@
 
-all: Proxy.class
+all: clean Proxy.class
 
 %.class: %.java
 	javac $<

@@ -1,3 +1,9 @@
+/**
+ * LseekHandler.java
+ * 
+ * @author Cundao Yu <cundaoy@andrew.cmu.edu>
+ */
+
 import java.io.IOException;
 
 public class LseekHandler {
@@ -14,16 +20,19 @@ public class LseekHandler {
         }
 
         OpenFile file = fdTable.getOpenFile(fd);
+        if(file.isDirectory()) {
+            return FileHandling.Errors.EBADF;
+        }
         try {
             switch(o) {
                 case FROM_START:
-                    file.getRandomAccessFile().seek(pos);
+                    file.lseek(pos);
                     break;
                 case FROM_CURRENT:
-                    file.getRandomAccessFile().seek(file.getRandomAccessFile().getFilePointer() + pos);
+                    file.lseek(file.getFilePointer() + pos);
                     break;
                 case FROM_END:
-                    file.getRandomAccessFile().seek(file.getRandomAccessFile().length() + pos);
+                    file.lseek(file.getLength() + pos);
                     break;
                 default:
                     return FileHandling.Errors.EINVAL;
@@ -36,7 +45,7 @@ public class LseekHandler {
 
         long cur = 0;
         try {
-            cur = file.getRandomAccessFile().getFilePointer();
+            cur = file.getFilePointer();
         } catch (IOException e) {
             System.out.println(e);
             System.exit(-1);

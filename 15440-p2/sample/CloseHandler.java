@@ -1,3 +1,9 @@
+/**
+ * CloseHandler.java
+ * 
+ * @author Cundao Yu <cundaoy@andrew.cmu.edu>
+ */
+
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
@@ -16,7 +22,7 @@ public class CloseHandler {
 
         OpenFile file = fdTable.getOpenFile(fd);
         try {
-            file.getRandomAccessFile().close();
+            file.close();
         } catch (IOException e) {
             System.out.println(e);
             System.exit(-1);
