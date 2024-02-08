@@ -1,3 +1,4 @@
+
 all: Proxy.class
 
 %.class: %.java
