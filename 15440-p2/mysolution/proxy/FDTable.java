@@ -9,7 +9,7 @@ import java.util.List;
 
 public class FDTable {
     
-    private static final int MAX_SIZE = 108;
+    private static final int MAX_SIZE = 10240;
 
     private List<OpenFile> openFiles;
 

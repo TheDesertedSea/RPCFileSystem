@@ -22,7 +22,7 @@ public class UnlinkHandler{
         File file = new File(path);
         Logger.logFileInfo(file);
         if(!file.exists()) {
-            return FileHandling.Errors.ENOENT;
+            return Errno.ENOENT;
         }
         
         try{
@@ -38,7 +38,7 @@ public class UnlinkHandler{
 
     public int checkPath(String path) {
         if(path == null || path.isEmpty()) {
-            return FileHandling.Errors.EINVAL;
+            return Errno.EINVAL;
         }
 
         List<String> pathList = Arrays.asList(path.split("/"));
@@ -57,11 +57,11 @@ public class UnlinkHandler{
             curPath += pathList.get(i);
             File file = new File(curPath);
             if(!file.exists()) {
-                return FileHandling.Errors.ENOENT;
+                return Errno.ENOENT;
             }
 
             if(!file.isDirectory()) {
-                return FileHandling.Errors.ENOTDIR;
+                return Errno.ENOTDIR;
             }
 
             curPath += "/";
@@ -69,7 +69,7 @@ public class UnlinkHandler{
 
         File file = new File(path);
         if(file.isDirectory()) {
-            return FileHandling.Errors.EISDIR;
+            return Errno.EISDIR;
         }
 
         return 0;

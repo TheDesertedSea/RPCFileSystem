@@ -6,7 +6,7 @@
 import java.io.File;
 
 public class Logger {
-    private static final Boolean DEBUG = false;
+    private static final Boolean DEBUG = true;
 
     public static void log(String message) {
         if(DEBUG) {
@@ -19,6 +19,7 @@ public class Logger {
             return;
         }
 
+        System.err.println("-----------------");
         System.err.println("File Information:");
         System.err.println("Name: " + file.getName());
         System.err.println("Path: " + file.getPath());
@@ -29,5 +30,6 @@ public class Logger {
         System.err.println("Is File: " + file.isFile());
         System.err.println("Can Read: " + file.canRead());
         System.err.println("Can Write: " + file.canWrite());
+        System.err.println("-----------------");
     }
 }

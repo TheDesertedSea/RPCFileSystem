@@ -5,7 +5,6 @@
  */
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 
 public class CloseHandler {
     
@@ -17,7 +16,7 @@ public class CloseHandler {
 
     public int close(int fd) {
         if(!fdTable.verifyFd(fd)) {
-            return FileHandling.Errors.EBADF;
+            return Errno.EBADF;
         }
 
         OpenFile file = fdTable.getOpenFile(fd);

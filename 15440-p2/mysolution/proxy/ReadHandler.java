@@ -1,40 +1,35 @@
 /**
- * WriteHandler.java
+ * ReadHandler.java
  * 
  * @author Cundao Yu <cundaoy@andrew.cmu.edu>
  */
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 
-public class WriteHandler {
+public class ReadHandler {
     
     private FDTable fdTable;
 
-    public WriteHandler(FDTable fdTable) {
+    public ReadHandler(FDTable fdTable) {
         this.fdTable = fdTable;
     }
 
-    public long write(int fd, byte[] buf) {
+    public long read(int fd, byte[] buf) {
         if(buf == null) {
-            return FileHandling.Errors.EINVAL;
+            return Errno.EINVAL;
         }
 
         if(!fdTable.verifyFd(fd)) {
-            return FileHandling.Errors.EBADF;
+            return Errno.EBADF;
         }
 
         OpenFile file = fdTable.getOpenFile(fd);
         if(file.isDirectory()) {
-            return FileHandling.Errors.EBADF;
+            return Errno.EISDIR;
         }
-        if(!file.canWrite()) {
-            return FileHandling.Errors.EBADF;
-        }
-
         try {
-            file.write(buf);
-            return buf.length;
+            long readCount = file.read(buf);
+            return readCount == -1 ? 0 : readCount;
         } catch (IOException e) {
             System.out.println(e);
             System.exit(-1);

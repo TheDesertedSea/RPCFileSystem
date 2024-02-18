@@ -16,12 +16,12 @@ public class LseekHandler {
 
     public long lseek(int fd, long pos, FileHandling.LseekOption o) {
         if(!fdTable.verifyFd(fd)) {
-            return FileHandling.Errors.EBADF;
+            return Errno.EBADF;
         }
 
         OpenFile file = fdTable.getOpenFile(fd);
         if(file.isDirectory()) {
-            return FileHandling.Errors.EBADF;
+            return Errno.EBADF;
         }
         try {
             switch(o) {
@@ -35,7 +35,7 @@ public class LseekHandler {
                     file.lseek(file.getLength() + pos);
                     break;
                 default:
-                    return FileHandling.Errors.EINVAL;
+                    return Errno.EINVAL;
             }
         } catch (IOException e) {
             System.out.println(e);

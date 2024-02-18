@@ -11,13 +11,19 @@ public class OpenFile {
     private Boolean canRead;
     private Boolean canWrite;
     private Boolean isDirectory;
+    private Boolean hasModified;
     private RandomAccessFile file;
+    private String localPath;
+    private String serverPath;
 
-    public OpenFile(RandomAccessFile file, Boolean canRead, Boolean canWrite, Boolean isDirectory) {
+    public OpenFile(RandomAccessFile file, Boolean canRead, Boolean canWrite, Boolean isDirectory, String localPath, String serverPath) {
         this.canRead = canRead;
         this.canWrite = canWrite;
         this.isDirectory = isDirectory;
         this.file = file;
+        this.hasModified = false;
+        this.localPath = localPath;
+        this.serverPath = serverPath;
     }
 
     public Boolean canRead() {
@@ -46,6 +52,7 @@ public class OpenFile {
 
     public void write(byte[] buf) throws IOException {
         file.write(buf);
+        hasModified = true;
     }
 
     public void lseek(long pos) throws IOException {
@@ -56,5 +63,17 @@ public class OpenFile {
         if(file != null) {
             file.close();
         }
+    }
+
+    public Boolean hasModified() {
+        return hasModified;
+    }
+
+    public String getLocalPath() {
+        return localPath;
+    }
+
+    public String getServerPath() {
+        return serverPath;
     }
 }
