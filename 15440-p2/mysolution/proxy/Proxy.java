@@ -11,8 +11,8 @@ import java.rmi.Naming;
 
 class Proxy {
 
-	public static Cache cache = null;
-	public static Operations server = null;
+	private static Cache cache = null;
+	private static ServerOperations server = null;
 
 	private static class FileHandler implements FileHandling {
 
@@ -222,6 +222,14 @@ class Proxy {
 
 	}
 
+	public static Cache getCache() {
+		return cache;
+	}
+
+	public static ServerOperations getServer() {
+		return server;
+	}
+
 	private static class FileHandlingFactory implements FileHandlingMaking {
 		public FileHandling newclient() {
 			return new FileHandler();
@@ -235,7 +243,7 @@ class Proxy {
 		long cachesize = Long.parseLong(args[3]);
 		String serverUrl = "//" + serverip + ":" + serverport + "/Server";
 		try {
-			server = (Operations) Naming.lookup(serverUrl);
+			server = (ServerOperations) Naming.lookup(serverUrl);
 		} catch (Exception e) {
 			System.out.println(e);
 			System.exit(-1);

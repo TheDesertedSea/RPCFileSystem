@@ -5,43 +5,51 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.UUID;
 
-public class Server extends UnicastRemoteObject implements Operations {
+public class Server extends UnicastRemoteObject implements ServerOperations {
+
+    public static final int NEW_VERSION = 0;
+    public static final int NO_UPDATE = 1;
+    public static final int NOT_EXIST = 2;
+    public static final int IS_DIR = 3;
 
     private String rootdir;
+    private ServerFileTable fileTable;
 
-    private CheckHandler checkFileHandler;
     private PutFileHandler putFileHandler;
     private GetFileHandler getFileHandler;
+    private RemoveFileHandler removeFileHandler;
+
 
     protected Server(String rootdir) throws RemoteException {
         super();
         this.rootdir = rootdir;
-        checkFileHandler = new CheckHandler(rootdir);
-        putFileHandler = new PutFileHandler();
-        getFileHandler = new GetFileHandler();
+        this.fileTable = new ServerFileTable();
+        putFileHandler = new PutFileHandler(this.fileTable, this.rootdir);
+        getFileHandler = new GetFileHandler(this.fileTable, this.rootdir);
+        removeFileHandler = new RemoveFileHandler(this.fileTable);
     }
 
     @Override
-    public CheckResult check(String path, CheckOption option) throws RemoteException{
-        return checkFileHandler.check(path, option);
+    public FileGetResult getFile(String requestPath, UUID proxyVersion) throws RemoteException {
+        return getFileHandler.getFile(requestPath, proxyVersion);
     }
 
     @Override
-    public byte[] getFile(String path) throws RemoteException{
-        return getFileHandler.getFile(path);
+    public void putFile(String path, byte[] data) throws RemoteException {
+        putFileHandler.putFile(path, data);
     }
 
     @Override
-    public int putFile(String path, byte[] data) throws RemoteException{
-        return putFileHandler.putFile(path, data);
+    public void removeFile(String path) throws RemoteException {
+        removeFileHandler.removeFile(path);
     }
 
     public static void main(String[] args) {
         int port = Integer.parseInt(args[0]);
-        String rootdir = args[1];
-        Path rootPath = Paths.get(rootdir);
-        rootdir = rootPath.normalize().toString();
+        Path rootPath = Paths.get(args[1]);
+        String rootdir = rootPath.normalize().toString();
         try {
             Server server = new Server(rootdir);
             LocateRegistry.createRegistry(port);
@@ -53,6 +61,4 @@ public class Server extends UnicastRemoteObject implements Operations {
             e.printStackTrace();
         }
     }
-
-    
 }

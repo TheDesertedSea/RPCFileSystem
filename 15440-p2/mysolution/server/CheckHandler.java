@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.List;
 
 public class CheckHandler {
-    // TODO: Add version functionality
 
     private String rootPath;
     private int componentCountRootPath;

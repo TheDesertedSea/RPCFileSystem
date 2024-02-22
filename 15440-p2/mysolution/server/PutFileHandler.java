@@ -1,25 +1,27 @@
-import java.io.File;
-import java.io.FileOutputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class PutFileHandler {
-    public int putFile(String path, byte[] data){
-        File file = new File(path);
-        if(!file.exists()){
-            try{
-                file.createNewFile();
-            } catch (Exception e){
-                e.printStackTrace();
-            }
-        }
 
-        try{
-            FileOutputStream fileOutputStream = new FileOutputStream(file);
-            fileOutputStream.write(data);
-            fileOutputStream.close();
-        } catch (Exception e){
-            e.printStackTrace();
-        }
+    private ServerFileTable fileTable;
+    private String rootPath;
 
-        return 0;
+    public PutFileHandler(ServerFileTable fileTable, String rootPath) {
+        this.fileTable = fileTable;
+        this.rootPath = rootPath;
+    }
+
+    public void putFile(String path, byte[] data){
+        Path absolutePathObj = Paths.get(path);
+        if (!absolutePathObj.isAbsolute()) {
+            absolutePathObj = Paths.get(rootPath, path);
+        }
+        absolutePathObj = absolutePathObj.normalize();
+        if(!absolutePathObj.startsWith(rootPath)){
+            return; 
+        }
+        String normalizedPath = absolutePathObj.toString();
+
+        fileTable.put(normalizedPath, data);
     }
 }
