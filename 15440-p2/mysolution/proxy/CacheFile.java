@@ -6,6 +6,7 @@ public class CacheFile {
 
     public CacheFile(String path, CacheFileVersion newestVersion) {
         this.path = path;
+        newestVersion.use();
         this.newestVersion = newestVersion;
         this.prev = null;
         this.next = null;
@@ -38,22 +39,23 @@ public class CacheFile {
         if (newestVersion != null) {
             newestVersion.release();
         }
+        newestVersion = null;
     }
     
     public CacheFile getNext() {
-        return null;
+        return next;
     }
 
     public void setNext(CacheFile next) {
-        return;
+        this.next = next;
     }
 
     public CacheFile getPrev() {
-        return null;
+        return prev;
     }
 
     public void setPrev(CacheFile prev) {
-        return;
+        this.prev = prev;
     }
 
     public String getPath() {

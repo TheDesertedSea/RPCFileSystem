@@ -44,7 +44,11 @@ public class OpenFile {
 
     public void write(byte[] buf) throws IOException {
         long size = buf.length;
-        cacheFileVersion.needWrite(size);
+        long moreSize = file.getFilePointer() + size - cacheFileVersion.getSize();
+        if(moreSize > 0)
+        {
+            cacheFileVersion.writeMore(moreSize);
+        }
         file.write(buf);
         cacheFileVersion.setModified(true);
     }

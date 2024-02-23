@@ -12,6 +12,12 @@ public class ServerFile {
         removeLock = new ReentrantReadWriteLock();
     }
 
+    public ServerFile(UUID version){
+        this.version = version;
+        readWriteLock = new ReentrantReadWriteLock();
+        removeLock = new ReentrantReadWriteLock();
+    }
+
     public UUID startGet(){
         readWriteLock.readLock().lock();
         return version;
@@ -44,5 +50,9 @@ public class ServerFile {
 
     public void unfreezeRemove(){
         removeLock.readLock().unlock();
+    }
+
+    public UUID getVersion(){
+        return version;
     }
 }

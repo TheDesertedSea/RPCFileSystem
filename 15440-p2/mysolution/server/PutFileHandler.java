@@ -1,5 +1,6 @@
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.UUID;
 
 public class PutFileHandler {
 
@@ -11,7 +12,8 @@ public class PutFileHandler {
         this.rootPath = rootPath;
     }
 
-    public void putFile(String path, byte[] data){
+    public void putFile(String path, byte[] data, UUID version){
+        Logger.log("Server: putFile(" + path + ")");
         Path absolutePathObj = Paths.get(path);
         if (!absolutePathObj.isAbsolute()) {
             absolutePathObj = Paths.get(rootPath, path);
@@ -20,8 +22,9 @@ public class PutFileHandler {
         if(!absolutePathObj.startsWith(rootPath)){
             return; 
         }
-        String normalizedPath = absolutePathObj.relativize(Paths.get(rootPath)).toString();
+        String normalizedPath = absolutePathObj.toString().replace(rootPath, "");
 
-        fileTable.put(normalizedPath, data);
+        fileTable.put(normalizedPath, data, version);
+        Logger.log("Server: putFile(" + path + ") = " + normalizedPath);
     }
 }

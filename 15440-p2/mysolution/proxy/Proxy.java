@@ -7,6 +7,8 @@
 
 import java.io.*;
 import java.nio.file.OpenOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.rmi.Naming;
 
 class Proxy {
@@ -18,6 +20,7 @@ class Proxy {
 
 		private FDTable fdTable;
 
+		private OpenHandler openHandler;
 		private CloseHandler closeHandler;
 		private WriteHandler writeHandler;
 		private ReadHandler readHandler;
@@ -26,6 +29,7 @@ class Proxy {
 
 		public FileHandler() {
 			fdTable = new FDTable();
+			openHandler = null;
 			closeHandler = null;
 			writeHandler = null;
 			readHandler = null;
@@ -33,7 +37,13 @@ class Proxy {
 		}
 
 		public int open(String path, OpenOption o) {
-			
+			Logger.log("Proxy: open(" + path + ")");
+			if (openHandler == null) {
+				openHandler = new OpenHandler(fdTable);
+			}
+			int res = openHandler.open(path, o);
+			Logger.log("Proxy: open(" + path + ") = " + res);
+			return res;
 		}
 
 		public int close(int fd) {
@@ -80,7 +90,7 @@ class Proxy {
 		public int unlink(String path) {
 			Logger.log("Proxy: unlink(" + path + ")");
 			if (unlinkHandler == null) {
-				unlinkHandler = new UnlinkHandler(cache.getCacheDir());
+				unlinkHandler = new UnlinkHandler();
 			}
 			int res = unlinkHandler.unlink(path);
 			Logger.log("Proxy: unlink(" + path + ") = " + res);
@@ -110,7 +120,11 @@ class Proxy {
 	public static void main(String[] args) throws IOException {
 		String serverip = args[0];
 		int serverport = Integer.parseInt(args[1]);
-		String cacheDir = args[2];
+		Path cachePath = Paths.get(args[2]);
+		String cacheDir = cachePath.toAbsolutePath().normalize().toString();
+		if (cacheDir.charAt(cacheDir.length() - 1) != '/') {
+			cacheDir += "/";
+		}
 		long cachesize = Long.parseLong(args[3]);
 		String serverUrl = "//" + serverip + ":" + serverport + "/Server";
 		try {
@@ -120,6 +134,7 @@ class Proxy {
 			System.exit(-1);
 		}
 		cache = new Cache(cacheDir, cachesize);
+		System.out.println("Proxy is running on " + cacheDir + " with size " + cachesize);
 		(new RPCreceiver(new FileHandlingFactory())).run();
 	}
 }

@@ -16,24 +16,27 @@ public class CacheFileVersion {
     private Boolean isDeleted;
     private long writeCopyId;
 
-    public CacheFileVersion(Cache cache, UUID versionId, Boolean canRead, Boolean canWrite, long size,
+    public CacheFileVersion(Cache cache, String path, UUID versionId, Boolean canRead, Boolean canWrite,
             long writeCopyId, byte[] data) {
         this.cache = cache;
+        this.path = path;
+        this.size = data == null ? 0 : data.length;
         this.versionId = versionId;
-        this.size = size;
         this.canRead = canRead;
         this.canWrite = canWrite;
         this.modified = false;
         this.refCount = 0;
         this.isDeleted = false;
         this.writeCopyId = writeCopyId;
-        
+
         File file = new File(getActualPath());
         try {
             file.createNewFile();
-            FileOutputStream fos = new FileOutputStream(file);
-            fos.write(data);
-            fos.close();
+            if (data != null) {
+                FileOutputStream fos = new FileOutputStream(file);
+                fos.write(data);
+                fos.close();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -48,6 +51,7 @@ public class CacheFileVersion {
             return false;
         }
         refCount++;
+        Logger.log("CacheFileVersion: use: " + path + " refCount: " + refCount);
         return true;
     }
 
@@ -56,20 +60,30 @@ public class CacheFileVersion {
         if (refCount == 0) {
             isDeleted = true;
             File file = new File(getActualPath());
-            if(modified) {
+            if (modified) {
+                Logger.log("upload file: " + path);
                 byte[] data = new byte[(int) size];
                 try {
                     FileInputStream fis = new FileInputStream(file);
                     fis.read(data);
                     fis.close();
-                    Proxy.getServer().putFile(path, data);
+                    file.delete();
+                    cache.giveBackSpace(size);
+                    CacheFileVersion newest = Proxy.getCache().updateNewestVersion(path, versionId, canRead, canWrite, data, false);
+                    if(newest != null)
+                    {
+                        newest.release();
+                    }
+                    Proxy.getServer().putFile(path, data, versionId);
                 } catch (IOException e) {
                     e.printStackTrace();
-                } 
+                }
+            } else {
+                file.delete();
+                cache.giveBackSpace(size);
             }
-            file.delete();
-            cache.giveBackSpace(size);
         }
+        Logger.log("CacheFileVersion: release: " + path + " refCount: " + refCount);
     }
 
     public CacheFileVersion cloneWriteCopy() {
@@ -82,12 +96,17 @@ public class CacheFileVersion {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return new CacheFileVersion(cache, this.versionId, this.canRead, this.canWrite, this.size, this.writeCopyId + 1, data);
+        CacheFileVersion writeCopy = new CacheFileVersion(cache, this.path, UUID.randomUUID(), this.canRead, this.canWrite,
+                this.writeCopyId + 1,
+                data);
+        writeCopy.use();
+        this.release();
+        return writeCopy;
     }
 
     public String getActualPath() {
         String name = path.replace("/", "_");
-        return cache.getCacheDir() + name + "." + versionId.toString() + "." + writeCopyId;
+        return cache.getCacheDir() + name + (versionId != null ? "." + versionId.toString() : "") + "." + writeCopyId;
     }
 
     public Boolean canRead() {
@@ -114,7 +133,8 @@ public class CacheFileVersion {
         this.modified = modified;
     }
 
-    public void needWrite(long size) {
+    public void writeMore(long size) {
         cache.takeSpace(size);
+        this.size += size;
     }
 }

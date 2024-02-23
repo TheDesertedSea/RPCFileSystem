@@ -20,6 +20,7 @@ public class GetFileHandler {
     }
 
     public FileGetResult getFile(String requestPath, UUID proxyVersion) {
+        Logger.log("Server: getFile(" + requestPath + ")");
         Path absolutePathObj = Paths.get(requestPath);
         if (!absolutePathObj.isAbsolute()) {
             absolutePathObj = Paths.get(rootPath, requestPath);
@@ -28,18 +29,28 @@ public class GetFileHandler {
 
         int res = checkPath(absolutePathObj.toString());
         if (res < 0) {
+            Logger.log("Server: getFile(" + requestPath + ") = " + res);
             return new FileGetResult(res, null, null, false, false, null);
         }
-        String normalizedPath = absolutePathObj.relativize(Paths.get(rootPath)).toString();
+        String normalizedPath = absolutePathObj.toString().replace(rootPath, "");
+        Logger.log("Server: getFile(" + requestPath + "), normalizedPath = " + normalizedPath);
 
         /* Lock Version */
         UUID newestVersion = fileTable.startGet(normalizedPath);
         File file = absolutePathObj.toFile();
+        Logger.logFileInfo(file);
         if (newestVersion == null) {
             if (file.isDirectory()) {
                 return new FileGetResult(Server.IS_DIR, normalizedPath, null, false, false, null);
             }
-            return new FileGetResult(Server.NOT_EXIST, normalizedPath, null, false, false, null);
+            if(!file.exists()){
+                return new FileGetResult(Server.NOT_EXIST, normalizedPath, null, false, false, null);
+            }
+            fileTable.addNewFileToManage(normalizedPath);
+            newestVersion = fileTable.startGet(normalizedPath);
+            if(newestVersion == null){
+                return new FileGetResult(Server.NOT_EXIST, normalizedPath, null, false, false, null);
+            }
         } else if (proxyVersion != null && proxyVersion.equals(newestVersion)) {
             fileTable.endGet(normalizedPath); // Unlock Version
             return new FileGetResult(Server.NO_UPDATE, normalizedPath, newestVersion, file.canRead(), file.canWrite(),

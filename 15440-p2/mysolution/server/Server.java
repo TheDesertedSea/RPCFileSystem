@@ -25,7 +25,7 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
     protected Server(String rootdir) throws RemoteException {
         super();
         this.rootdir = rootdir;
-        this.fileTable = new ServerFileTable();
+        this.fileTable = new ServerFileTable(rootdir);
         putFileHandler = new PutFileHandler(this.fileTable, this.rootdir);
         getFileHandler = new GetFileHandler(this.fileTable, this.rootdir);
         removeFileHandler = new RemoveFileHandler(this.fileTable, this.rootdir);
@@ -33,23 +33,33 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
 
     @Override
     public FileGetResult getFile(String requestPath, UUID proxyVersion) throws RemoteException {
-        return getFileHandler.getFile(requestPath, proxyVersion);
+        Logger.log("Server: getFile(" + requestPath + ")");
+        FileGetResult res = getFileHandler.getFile(requestPath, proxyVersion);
+        Logger.log("Server: getFile(" + requestPath + ") = " + res);
+        return res;
     }
 
     @Override
-    public void putFile(String path, byte[] data) throws RemoteException {
-        putFileHandler.putFile(path, data);
+    public void putFile(String path, byte[] data, UUID version) throws RemoteException {
+        Logger.log("Server: putFile(" + path + ")");
+        putFileHandler.putFile(path, data, version);
     }
 
     @Override
-    public void removeFile(String path) throws RemoteException {
-        removeFileHandler.removeFile(path);
+    public FileRemoveResult removeFile(String path) throws RemoteException {
+        Logger.log("Server: removeFile(" + path + ")");
+        FileRemoveResult res = removeFileHandler.removeFile(path);
+        Logger.log("Server: removeFile(" + path + ") = " + res);
+        return res;
     }
 
     public static void main(String[] args) {
         int port = Integer.parseInt(args[0]);
         Path rootPath = Paths.get(args[1]);
-        String rootdir = rootPath.normalize().toString();
+        String rootdir = rootPath.toAbsolutePath().normalize().toString();
+        if(rootdir.charAt(rootdir.length() - 1) != '/') {
+            rootdir += "/";
+        }
         try {
             Server server = new Server(rootdir);
             LocateRegistry.createRegistry(port);

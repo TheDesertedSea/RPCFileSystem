@@ -5,9 +5,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ServerFileTable {
     private ConcurrentHashMap<String, ServerFile> fileTable;
+    private String rootdir;
 
-    public ServerFileTable() {
+    public ServerFileTable(String rootdir) {
         fileTable = new ConcurrentHashMap<>();
+        this.rootdir = rootdir;
     }
 
     public UUID startGet(String path) {
@@ -33,15 +35,20 @@ public class ServerFileTable {
         serverVersion.unfreezeRemove();
     }
 
-    public void put(String path, byte[] data) {
-        ServerFile serverVersion = fileTable.getOrDefault(path, new ServerFile());
+    public void put(String path, byte[] data, UUID version) {
+        ServerFile tempForAbsent = new ServerFile(version);
+        ServerFile serverVersion = fileTable.putIfAbsent(path, tempForAbsent);
+        if(serverVersion == null){
+            serverVersion = tempForAbsent;
+        }
         serverVersion.freezeRemove();
         if (serverVersion != fileTable.get(path)) {
             serverVersion.unfreezeRemove();
             return;
         }
         serverVersion.startPut();
-        File file = new File(path);
+        File file = new File(rootdir + path);
+        Logger.logFileInfo(file);
         if (!file.exists()) {
             try {
                 file.createNewFile();
@@ -63,21 +70,23 @@ public class ServerFileTable {
         serverVersion.unfreezeRemove();
     }
 
-    public void remove(String path) {
-        ServerFile serverVersion = fileTable.get(path);
-        if (serverVersion == null) {
-            return;
+    public int remove(String path) {
+        ServerFile tempForAbsent = new ServerFile();
+        ServerFile serverVersion = fileTable.putIfAbsent(path, tempForAbsent);
+        if(serverVersion == null){
+            serverVersion = tempForAbsent;
         }
         serverVersion.startRemove();
         if (serverVersion != fileTable.get(path)) {
             serverVersion.endRemove();
-            return;
+            return Errno.ENOENT;
         }
         fileTable.remove(path);
-        File file = new File(path);
+        File file = new File(rootdir + path);
+        Logger.logFileInfo(file);
         if (!file.exists()) {
             serverVersion.endRemove();
-            return;
+            return Errno.ENOENT;
         }
         try {
             file.delete();
@@ -85,5 +94,10 @@ public class ServerFileTable {
             e.printStackTrace();
         }
         serverVersion.endRemove();
+        return 0;
     } 
+
+    public void addNewFileToManage(String path) {
+        fileTable.putIfAbsent(path, new ServerFile());
+    }
 }

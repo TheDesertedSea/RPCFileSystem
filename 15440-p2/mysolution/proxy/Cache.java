@@ -29,34 +29,44 @@ public class Cache {
             return null;
         }
         if (bWrite) {
+            newestVersion.release();
+            evictUntilEnoughSpace(newestVersion.getSize());
             CacheFileVersion writeCopy = newestVersion.cloneWriteCopy();
             return writeCopy;
         }
         return newestVersion;
     }
 
-    public synchronized CacheFileVersion updateNewestVersion(String path, UUID versionId, Boolean canRead, Boolean canWrite,
-            long size, byte[] data, Boolean bWrite) {
+    public synchronized CacheFileVersion updateNewestVersion(String path, UUID versionId, Boolean canRead,
+            Boolean canWrite,
+            byte[] data, Boolean bWrite) {
+        int size = data == null ? 0 : data.length;
         CacheFileVersion newestVersion;
         if (cacheFileTable.containsKey(path)) {
             CacheFile cacheFile = cacheFileTable.get(path);
             newestVersion = cacheFile.getNewestVersion();
             if (newestVersion != null && newestVersion.getVersionId().equals(versionId)) {
                 if (bWrite) {
+                    if (newestVersion != null) {
+                        newestVersion.release();
+                    }
                     evictUntilEnoughSpace(size);
                     CacheFileVersion writeCopy = newestVersion.cloneWriteCopy();
                     return writeCopy;
                 }
                 return newestVersion;
             }
+            if (newestVersion != null) {
+                newestVersion.release();
+            }
             cacheFile.removeNewestVersion();
             evictUntilEnoughSpace(size);
-            newestVersion = new CacheFileVersion(this, versionId, canRead, canWrite, size, 0, data);
+            newestVersion = new CacheFileVersion(this, path, versionId, canRead, canWrite, 0, data);
             cacheFile.setNewestVersion(newestVersion);
             updateLRU(cacheFile);
         } else {
             evictUntilEnoughSpace(size);
-            newestVersion = new CacheFileVersion(this, versionId, canRead, canWrite, size, 0, data);
+            newestVersion = new CacheFileVersion(this, path, versionId, canRead, canWrite, 0, data);
             CacheFile newCacheFile = new CacheFile(path, newestVersion);
             insertLRU(newCacheFile);
             cacheFileTable.put(path, newCacheFile);
@@ -66,12 +76,14 @@ public class Cache {
             CacheFileVersion writeCopy = newestVersion.cloneWriteCopy();
             return writeCopy;
         }
+        newestVersion.use();
         return newestVersion;
     }
 
     public synchronized void removeFile(String path) {
         CacheFile cacheFile = cacheFileTable.get(path);
         if (cacheFile == null) {
+            Logger.log("Cache: removeFile: " + path + " not found");
             return;
         }
         cacheFileTable.remove(path);
@@ -168,10 +180,8 @@ public class Cache {
         freeSpaceLock.readLock().unlock();
     }
 
-    public void takeSpace(long space) {
-        freeSpaceLock.writeLock().lock();
-        freeSpace -= space;
-        freeSpaceLock.writeLock().unlock();
+    public synchronized void takeSpace(long space) {
+        evictUntilEnoughSpace(space);
     }
 
     public String getCacheDir() {

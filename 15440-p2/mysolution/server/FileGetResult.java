@@ -65,4 +65,15 @@ public class FileGetResult implements Serializable{
     public void setData(byte[] data) {
         this.data = data;
     }
+
+    public String toString(){
+        return "-------------------\n" + 
+                "resCode: " + resCode + "\n" +
+                "path: " + (path == null ? "" : path) + "\n" +
+                "version: " + (version == null ? "" : path) + "\n" +
+                "canRead: " + canRead + "\n" +
+                "canWrite: " + canWrite + "\n" +
+                "data length: " + (data == null ? "0" : data.length) + "\n" +
+                "-------------------\n";
+    }
 }
