@@ -23,10 +23,8 @@ public class CloseHandler {
         try {
             file.close();
         } catch (IOException e) {
-            System.out.println(e);
-            System.exit(-1);
+            e.printStackTrace();
         }
-
         fdTable.removeOpenFile(fd);
         return 0;
     }

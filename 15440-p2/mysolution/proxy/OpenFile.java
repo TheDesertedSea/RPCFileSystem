@@ -8,30 +8,22 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 
 public class OpenFile {
-    private Boolean canRead;
-    private Boolean canWrite;
-    private Boolean isDirectory;
-    private Boolean hasModified;
+    private CacheFileVersion cacheFileVersion;
     private RandomAccessFile file;
-    private String localPath;
-    private String serverPath;
+    private Boolean isDirectory;
 
-    public OpenFile(RandomAccessFile file, Boolean canRead, Boolean canWrite, Boolean isDirectory, String localPath, String serverPath) {
-        this.canRead = canRead;
-        this.canWrite = canWrite;
-        this.isDirectory = isDirectory;
+    public OpenFile(RandomAccessFile file, CacheFileVersion cacheFileVersion, Boolean isDirectory) {
         this.file = file;
-        this.hasModified = false;
-        this.localPath = localPath;
-        this.serverPath = serverPath;
+        this.cacheFileVersion = cacheFileVersion;
+        this.isDirectory = isDirectory;
     }
 
     public Boolean canRead() {
-        return canRead;
+        return cacheFileVersion.canRead();
     }
 
     public Boolean canWrite() {
-        return canWrite;
+        return cacheFileVersion.canWrite();
     }
 
     public Boolean isDirectory() {
@@ -51,8 +43,10 @@ public class OpenFile {
     }
 
     public void write(byte[] buf) throws IOException {
+        long size = buf.length;
+        cacheFileVersion.needWrite(size);
         file.write(buf);
-        hasModified = true;
+        cacheFileVersion.setModified(true);
     }
 
     public void lseek(long pos) throws IOException {
@@ -62,18 +56,11 @@ public class OpenFile {
     public void close() throws IOException {
         if(file != null) {
             file.close();
+            cacheFileVersion.release();
         }
     }
 
-    public Boolean hasModified() {
-        return hasModified;
-    }
-
-    public String getLocalPath() {
-        return localPath;
-    }
-
-    public String getServerPath() {
-        return serverPath;
+    public Boolean isModified() {
+        return cacheFileVersion.isModified();
     }
 }

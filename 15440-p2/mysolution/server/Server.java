@@ -28,7 +28,7 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
         this.fileTable = new ServerFileTable();
         putFileHandler = new PutFileHandler(this.fileTable, this.rootdir);
         getFileHandler = new GetFileHandler(this.fileTable, this.rootdir);
-        removeFileHandler = new RemoveFileHandler(this.fileTable);
+        removeFileHandler = new RemoveFileHandler(this.fileTable, this.rootdir);
     }
 
     @Override

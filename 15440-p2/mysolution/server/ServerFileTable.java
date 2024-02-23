@@ -21,8 +21,7 @@ public class ServerFileTable {
             return null;
         }
         return serverVersion.startGet();
-    } // if got, remove_lock and then get to check if removed from table, return if
-      // removed
+    }
 
     public void endGet(String path) {
         ServerFile serverVersion = fileTable.get(path);
@@ -86,5 +85,5 @@ public class ServerFileTable {
             e.printStackTrace();
         }
         serverVersion.endRemove();
-    } // if got, write remove_lock and then check, if null return
+    } 
 }

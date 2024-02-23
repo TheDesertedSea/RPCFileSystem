@@ -30,7 +30,7 @@ public class GetFileHandler {
         if (res < 0) {
             return new FileGetResult(res, null, null, false, false, null);
         }
-        String normalizedPath = absolutePathObj.toString();
+        String normalizedPath = absolutePathObj.relativize(Paths.get(rootPath)).toString();
 
         /* Lock Version */
         UUID newestVersion = fileTable.startGet(normalizedPath);

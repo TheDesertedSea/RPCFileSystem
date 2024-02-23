@@ -22,9 +22,22 @@ public class CacheFile {
         return newestVersion;
     }
 
+    public void removeNewestVersion() {
+        if (newestVersion != null) {
+            newestVersion.release();
+        }
+        newestVersion = null;
+    }
+
     public void setNewestVersion(CacheFileVersion newestVersion) {
         newestVersion.use();
         this.newestVersion = newestVersion;
+    }
+
+    public void remove(){
+        if (newestVersion != null) {
+            newestVersion.release();
+        }
     }
     
     public CacheFile getNext() {
@@ -43,5 +56,7 @@ public class CacheFile {
         return;
     }
 
-
+    public String getPath() {
+        return path;
+    }
 }

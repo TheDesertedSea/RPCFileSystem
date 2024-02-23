@@ -20,7 +20,7 @@ public class PutFileHandler {
         if(!absolutePathObj.startsWith(rootPath)){
             return; 
         }
-        String normalizedPath = absolutePathObj.toString();
+        String normalizedPath = absolutePathObj.relativize(Paths.get(rootPath)).toString();
 
         fileTable.put(normalizedPath, data);
     }
