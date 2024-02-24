@@ -1,13 +1,6 @@
-/**
- * ReadHandler.java
- * 
- * @author Cundao Yu <cundaoy@andrew.cmu.edu>
- */
-
 import java.io.IOException;
 
 public class ReadHandler {
-    
     private FDTable fdTable;
 
     public ReadHandler(FDTable fdTable) {
@@ -15,16 +8,16 @@ public class ReadHandler {
     }
 
     public long read(int fd, byte[] buf) {
-        if(buf == null) {
+        if (buf == null) {
             return ResCode.EINVAL;
         }
 
-        if(!fdTable.verifyFd(fd)) {
+        if (!fdTable.verifyFd(fd)) {
             return ResCode.EBADF;
         }
 
         OpenFile file = fdTable.getOpenFile(fd);
-        if(file.isDirectory()) {
+        if (file.isDirectory()) {
             return ResCode.EISDIR;
         }
         try {
@@ -36,5 +29,4 @@ public class ReadHandler {
         }
         return 0;
     }
-
 }

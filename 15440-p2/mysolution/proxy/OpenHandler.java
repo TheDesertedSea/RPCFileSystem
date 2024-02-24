@@ -29,7 +29,7 @@ public class OpenHandler {
             if (newestVersion != null) {
                 newestVersion.release();
             }
-            return Errno.EINVAL;
+            return ResCode.EINVAL;
         }
 
         if (res.getResCode() < 0) {
@@ -43,13 +43,13 @@ public class OpenHandler {
             if (option == FileHandling.OpenOption.READ) {
                 int fd = fdTable.getFreeFd();
                 if (fd < 0) {
-                    return Errno.EMFILE;
+                    return ResCode.EMFILE;
                 }
                 OpenFile openFile = new OpenFile(null, null, true);
                 fdTable.addOpenFile(fd, openFile);
                 return fd;
             } else {
-                return Errno.EISDIR;
+                return ResCode.EISDIR;
             }
         }
 
@@ -58,7 +58,7 @@ public class OpenHandler {
             if(newestVersion != null){
                 newestVersion.release();
             }
-            newestVersion = Proxy.getCache().updateNewestVersion(res.getPath(), res.getVersion(), res.getCanRead(),
+            newestVersion = Proxy.getCache().updateNewestVersion(res.getRelativePath(), res.getVerId(), res.getCanRead(),
                     res.getCanWrite(), res.getData(), bWrite);
             if (newestVersion == null) {
                 exists = false;
@@ -69,7 +69,7 @@ public class OpenHandler {
             if (newestVersion != null) {
                 newestVersion.release();
             }
-            Proxy.getCache().removeFile(res.getPath());
+            Proxy.getCache().removeFile(res.getRelativePath());
             exists = false;
         }
 
@@ -77,21 +77,21 @@ public class OpenHandler {
         switch (option) {
             case READ:
                 if (!exists) {
-                    return Errno.ENOENT;
+                    return ResCode.ENOENT;
                 }
                 if (!newestVersion.canRead()) {
                     newestVersion.release();
-                    return Errno.EACCES;
+                    return ResCode.EACCES;
                 }
                 mode = "r";
                 break;
             case WRITE:
                 if (!exists) {
-                    return Errno.ENOENT;
+                    return ResCode.ENOENT;
                 }
                 if (!newestVersion.canWrite() || !newestVersion.canRead()) {
                     newestVersion.release();
-                    return Errno.EACCES;
+                    return ResCode.EACCES;
                 }
                 mode = "rw";
                 break;
@@ -99,10 +99,10 @@ public class OpenHandler {
                 if (exists) {
                     if (!newestVersion.canWrite() || !newestVersion.canRead()) {
                         newestVersion.release();
-                        return Errno.EACCES;
+                        return ResCode.EACCES;
                     }
                 } else {
-                    newestVersion = new CacheFileVersion(Proxy.getCache(), res.getPath(), UUID.randomUUID(), true, true, 1, null);
+                    newestVersion = new CacheFileVersion(Proxy.getCache(), res.getRelativePath(), UUID.randomUUID(), true, true, 1, null);
                     newestVersion.use();
                 }
                 mode = "rw";
@@ -110,21 +110,21 @@ public class OpenHandler {
             case CREATE_NEW:
                 if (exists) {
                     newestVersion.release();
-                    return Errno.EEXIST;
+                    return ResCode.EEXIST;
                 }
-                newestVersion = new CacheFileVersion(Proxy.getCache(), res.getPath(), UUID.randomUUID(), true, true, 1, null);
+                newestVersion = new CacheFileVersion(Proxy.getCache(), res.getRelativePath(), UUID.randomUUID(), true, true, 1, null);
                 newestVersion.use();
                 mode = "rw";
                 break;
             default:
                 newestVersion.release();
-                return Errno.EINVAL;
+                return ResCode.EINVAL;
         }
 
         int fd = fdTable.getFreeFd();
         if (fd < 0) {
             newestVersion.release();
-            return Errno.EMFILE;
+            return ResCode.EMFILE;
         }
 
         try {
@@ -133,7 +133,7 @@ public class OpenHandler {
             fdTable.addOpenFile(fd, openFile);
         } catch (FileNotFoundException e) {
             newestVersion.release();
-            return Errno.EACCES;
+            return ResCode.EACCES;
         }
 
         return fd;

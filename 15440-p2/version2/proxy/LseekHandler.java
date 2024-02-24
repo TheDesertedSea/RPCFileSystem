@@ -1,3 +1,4 @@
+
 /**
  * LseekHandler.java
  * 
@@ -7,7 +8,7 @@
 import java.io.IOException;
 
 public class LseekHandler {
-    
+
     private FDTable fdTable;
 
     public LseekHandler(FDTable fdTable) {
@@ -15,16 +16,16 @@ public class LseekHandler {
     }
 
     public long lseek(int fd, long pos, FileHandling.LseekOption o) {
-        if(!fdTable.verifyFd(fd)) {
+        if (!fdTable.verifyFd(fd)) {
             return ResCode.EBADF;
         }
 
         OpenFile file = fdTable.getOpenFile(fd);
-        if(file.isDirectory()) {
+        if (file.isDirectory()) {
             return ResCode.EBADF;
         }
         try {
-            switch(o) {
+            switch (o) {
                 case FROM_START:
                     file.lseek(pos);
                     break;
@@ -41,7 +42,6 @@ public class LseekHandler {
             System.out.println(e);
             System.exit(-1);
         }
-        
 
         long cur = 0;
         try {

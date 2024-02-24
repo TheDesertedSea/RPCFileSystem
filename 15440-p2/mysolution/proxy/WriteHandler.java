@@ -16,19 +16,19 @@ public class WriteHandler {
 
     public long write(int fd, byte[] buf) {
         if(buf == null) {
-            return Errno.EINVAL;
+            return ResCode.EINVAL;
         }
 
         if(!fdTable.verifyFd(fd)) {
-            return Errno.EBADF;
+            return ResCode.EBADF;
         }
 
         OpenFile file = fdTable.getOpenFile(fd);
         if(file.isDirectory()) {
-            return Errno.EBADF;
+            return ResCode.EBADF;
         }
         if(!file.canWrite()) {
-            return Errno.EBADF;
+            return ResCode.EBADF;
         }
 
         try {

@@ -79,14 +79,14 @@ public class ServerFileTable {
         serverVersion.startRemove();
         if (serverVersion != fileTable.get(path)) {
             serverVersion.endRemove();
-            return Errno.ENOENT;
+            return ResCode.ENOENT;
         }
         fileTable.remove(path);
         File file = new File(rootdir + path);
         Logger.logFileInfo(file);
         if (!file.exists()) {
             serverVersion.endRemove();
-            return Errno.ENOENT;
+            return ResCode.ENOENT;
         }
         try {
             file.delete();

@@ -4,8 +4,6 @@
  * @author Cundao Yu <cundaoy@andrew.cmu.edu>
  */
 
-import java.io.IOException;
-
 public class CloseHandler {
     
     private FDTable fdTable;  
@@ -20,11 +18,7 @@ public class CloseHandler {
         }
 
         OpenFile file = fdTable.getOpenFile(fd);
-        try {
-            file.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        file.close();
         fdTable.removeOpenFile(fd);
         return 0;
     }

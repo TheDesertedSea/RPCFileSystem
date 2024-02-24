@@ -1,7 +1,8 @@
 {
     "java.project.sourcePaths": [
-        "mysolution/proxy",
-        "mysolution/server",
-        "mysolution/util"
+        "version3/util",
+        "version3/server",
+        "version3/proxy",
+        "lib"
     ]
 }

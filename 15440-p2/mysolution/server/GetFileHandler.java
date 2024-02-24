@@ -73,11 +73,11 @@ public class GetFileHandler {
 
     private int checkPath(String absolutePath) {
         if (absolutePath == null || absolutePath.isEmpty()) {
-            return Errno.EINVAL;
+            return ResCode.EINVAL;
         }
 
         if (!absolutePath.startsWith(rootPath)) {
-            return Errno.EPERM;
+            return ResCode.EPERM;
         }
 
         List<String> pathList = Arrays.asList(absolutePath.split("/"));
@@ -90,11 +90,11 @@ public class GetFileHandler {
             curPath += pathList.get(i);
             File file = new File(curPath);
             if (!file.exists()) {
-                return Errno.ENOENT;
+                return ResCode.ENOENT;
             }
 
             if (!file.isDirectory()) {
-                return Errno.ENOTDIR;
+                return ResCode.ENOTDIR;
             }
 
             curPath += "/";

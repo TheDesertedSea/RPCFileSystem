@@ -1,3 +1,4 @@
+
 /**
  * UnlinkHandler.java
  * 
@@ -5,14 +6,14 @@
  */
 import java.rmi.RemoteException;
 
-public class UnlinkHandler{
+public class UnlinkHandler {
     public UnlinkHandler() {
     }
 
     public int unlink(String path) {
         try {
             FileRemoveResult res = Proxy.getServer().removeFile(path);
-            if(res.getResCode() < 0) {
+            if (res.getResCode() < 0) {
                 return res.getResCode();
             }
             Proxy.getCache().removeFile(res.getRelativePath());
