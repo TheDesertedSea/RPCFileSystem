@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public class Server extends UnicastRemoteObject implements ServerOperations {
 
-    public static final int CHUNK_SIZE = 1024 * 10;
+    public static final int CHUNK_SIZE = 1024 * 1024;
 
     private String rootdir;
     private ServerFileTable fileTable;
@@ -75,8 +75,7 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
                     serverFile.canWrite(), -1, -1);
         }
 
-        int serverFd = fdTable.getFreeFd();
-        fdTable.addOpenFile(serverFd, serverFile.open(true, null));
+        int serverFd = fdTable.addOpenFile(serverFile.open(true, null));
         return new FileCheckResult(ResCode.NEW_VERSION, relativePath, serverFile.getVerId(), serverFile.canRead(),
                 serverFile.canWrite(), serverFd, serverFile.getSize());
     }
@@ -84,6 +83,9 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
     @Override
     public void closeFile(int serverFd) throws RemoteException {
         Logger.log("Closing file: " + serverFd);
+        if(!fdTable.verifyFd(serverFd)){
+            throw new RemoteException("Invalid file descriptor");
+        }
         ServerOpenFile openFile = fdTable.getOpenFile(serverFd);
         openFile.close();
         fdTable.removeOpenFile(serverFd);
@@ -91,6 +93,9 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
 
     @Override
     public byte[] readFile(int serverFd) throws RemoteException {
+        if(!fdTable.verifyFd(serverFd)){
+            throw new RemoteException("Invalid file descriptor");
+        }
         ServerOpenFile openFile = fdTable.getOpenFile(serverFd);
         return openFile.read();
     }
@@ -98,13 +103,15 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
     public int putFile(String relativePath, UUID verId) throws RemoteException {
         Logger.log("Putting file: " + relativePath + " with verId: " + verId);
         ServerFile serverFile = fileTable.getFile(relativePath, false, verId, true);
-        int serverFd = fdTable.getFreeFd();
-        fdTable.addOpenFile(serverFd, serverFile.open(false, verId));
+        int serverFd = fdTable.addOpenFile(serverFile.open(false, verId));
         return serverFd;
     }
 
     @Override
     public void writeFile(int serverFd, byte[] data) throws RemoteException {
+        if(!fdTable.verifyFd(serverFd)){
+            throw new RemoteException("Invalid file descriptor");
+        }
         ServerOpenFile openFile = fdTable.getOpenFile(serverFd);
         openFile.write(data);
     }

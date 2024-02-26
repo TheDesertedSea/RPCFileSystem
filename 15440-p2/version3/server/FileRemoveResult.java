@@ -1,4 +1,6 @@
-public class FileRemoveResult {
+import java.io.Serializable;
+
+public class FileRemoveResult implements Serializable{
     int resCode;
     String relativePath;
 
