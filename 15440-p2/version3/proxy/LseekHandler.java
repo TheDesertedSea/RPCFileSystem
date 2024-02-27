@@ -1,21 +1,39 @@
-
 /**
  * LseekHandler.java
  * 
  * @author Cundao Yu <cundaoy@andrew.cmu.edu>
  */
-
 import java.io.IOException;
 
+/**
+ * Handler for lseek operation
+ */
 public class LseekHandler {
 
+    /**
+     * {@link FDTable}
+     * File descriptor table
+     */
     private FDTable fdTable;
 
+    /**
+     * Constructor
+     * 
+     * @param fdTable {@link FDTable} File descriptor table
+     */
     public LseekHandler(FDTable fdTable) {
         this.fdTable = fdTable;
     }
 
-    public long lseek(int fd, long pos, FileHandling.LseekOption o) {
+    /**
+     * Change the file offset
+     * 
+     * @param fd  File descriptor
+     * @param pos Offset
+     * @param option Open option
+     * @return 0 if success, otherwise a negative error code
+     */
+    public long lseek(int fd, long pos, FileHandling.LseekOption option) {
         if (!fdTable.verifyFd(fd)) {
             return ResCode.EBADF;
         }
@@ -25,7 +43,7 @@ public class LseekHandler {
             return ResCode.EBADF;
         }
         try {
-            switch (o) {
+            switch (option) {
                 case FROM_START:
                     file.lseek(pos);
                     break;
