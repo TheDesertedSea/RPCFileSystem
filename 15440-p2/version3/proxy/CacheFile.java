@@ -14,9 +14,9 @@ public class CacheFile {
         this.next = null;
     }
 
-    public CacheFile(String relativePath, UUID verId, Boolean canRead, Boolean canWrite, int serverFd, long size) {
+    public CacheFile(String relativePath, UUID verId, Boolean canRead, Boolean canWrite, int serverFd, long size, byte[] firstChunk) {
         this.relativePath = relativePath;
-        this.newest = new CacheFileVersion(relativePath, verId, canRead, canWrite, 1, serverFd, size);
+        this.newest = new CacheFileVersion(relativePath, verId, canRead, canWrite, 1, serverFd, size, firstChunk);
         this.prev = null;
         this.next = null;
     }
@@ -29,7 +29,9 @@ public class CacheFile {
     }
 
     public Boolean isNewestInUse() {
-        return newest.getRefCount() > 1;
+        long refCount = newest.getRefCount();
+        Logger.LRUlog("Check newest refCount: " + refCount);
+        return refCount > 1;
     }
 
     public CacheFile getPrev() {
@@ -69,9 +71,9 @@ public class CacheFile {
         newest = new CacheFileVersion(relativePath, verId, canRead, canWrite, 1, raf);
     }
 
-    public void update(UUID verId, Boolean canRead, Boolean canWrite, int serverFd, long size) {
+    public void update(UUID verId, Boolean canRead, Boolean canWrite, int serverFd, long size, byte[] firstChunk) {
         newest.release();
-        newest = new CacheFileVersion(relativePath, verId, canRead, canWrite, 1, serverFd, size);
+        newest = new CacheFileVersion(relativePath, verId, canRead, canWrite, 1, serverFd, size, firstChunk);
     }
 
     public void update(CacheFileVersion fileVersion) {

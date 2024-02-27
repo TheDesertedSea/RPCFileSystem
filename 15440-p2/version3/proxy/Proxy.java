@@ -37,6 +37,7 @@ class Proxy {
 		}
 
 		public int open(String path, OpenOption o) {
+			Logger.LRUlog("Proxy: open(" + path + ")");
 			Logger.log("Proxy: open(" + path + ")");
 			if (openHandler == null) {
 				openHandler = new OpenHandler(fdTable);

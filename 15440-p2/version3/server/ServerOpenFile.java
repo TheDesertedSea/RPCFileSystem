@@ -61,6 +61,7 @@ public class ServerOpenFile {
         if(!read){
             Logger.log("File: " + relativePath + " is being updated");
             fileTable.updateFile(relativePath, tempFile, verId);
+            
         }
         Boolean deleteRes = tempFile.delete();
         Logger.log("Temp file: " + tempFile.getAbsolutePath() + " is deleted: " + deleteRes);

@@ -6,7 +6,8 @@
 import java.io.File;
 
 public class Logger {
-    private static final Boolean DEBUG = true;
+    private static final Boolean DEBUG = false;
+    private static final Boolean LRU_DEBUG = true;
 
     public static void log(String message) {
         if(DEBUG) {
@@ -31,6 +32,12 @@ public class Logger {
         System.err.println("Can Read: " + file.canRead());
         System.err.println("Can Write: " + file.canWrite());
         System.err.println("-----------------");
+    }
+
+    public static void LRUlog(String message) {
+        if(LRU_DEBUG) {
+            System.err.println(message);
+        }
     }
 
 }

@@ -18,9 +18,11 @@ public class CacheFileVersion {
     public CacheFileVersion(String relativePath, UUID verId, Boolean canRead, Boolean canWrite,
             long initialRefCount, RandomAccessFile raf) {
         Logger.log("Creating CacheFileVersion for " + relativePath + " with verId " + verId);
+        
         this.relativePath = relativePath;
         this.verId = verId;
         this.refCount = initialRefCount;
+        Logger.LRUlog("Creating CacheFileVersion for " + relativePath + " with refCount " + this.refCount);
         this.canRead = canRead;
         this.canWrite = canWrite;
         this.isDeleted = false;
@@ -38,11 +40,12 @@ public class CacheFileVersion {
         }
     }
 
-    public CacheFileVersion(String relativePath, UUID verId, Boolean canRead, Boolean canWrite, long refCount, int serverFd, long size) {
+    public CacheFileVersion(String relativePath, UUID verId, Boolean canRead, Boolean canWrite, long refCount, int serverFd, long size, byte[] firstChunk) {
         Logger.log("Creating CacheFileVersion for " + relativePath + " with verId " + verId);
         this.relativePath = relativePath;
         this.verId = verId;
         this.refCount = refCount;
+        Logger.LRUlog("Creating CacheFileVersion for " + relativePath + " with refCount " + this.refCount);
         this.canRead = canRead;
         this.canWrite = canWrite;
         this.isDeleted = false;
@@ -58,7 +61,7 @@ public class CacheFileVersion {
             e.printStackTrace();
         }
 
-        initFileContent(serverFd, size);
+        initFileContent(serverFd, size, firstChunk);
     }
 
     /**
@@ -69,6 +72,7 @@ public class CacheFileVersion {
             return false;
         }
         refCount++;
+        Logger.LRUlog("File is used, refCount: " + refCount);
         return true;
     }
 
@@ -81,10 +85,12 @@ public class CacheFileVersion {
         }
         refCount--;
         if (refCount == 0) {
+            Logger.LRUlog("File: " + relativePath + " is released");
             File file = new File(getCacheLocation());
             if (isModified) {
                 Logger.log("File: " + relativePath + " is modified, uploading to server");
                 Logger.log("size is: " + size + " or is it? " + file.length());
+                isModified = false;
                 updateCache();
                 uploadToServer();
             }else{
@@ -93,6 +99,7 @@ public class CacheFileVersion {
                 isDeleted = true;
             }
         }
+        Logger.LRUlog("File after releasing: " + relativePath + " refCount: " + refCount);
     }
 
     /**
@@ -238,12 +245,19 @@ public class CacheFileVersion {
         }
     }
 
-    private void initFileContent(int serverFd, long size){
+    private void initFileContent(int serverFd, long size, byte[] firstChunk){
         RandomAccessFile thisFile = getRAF();
+        try {
+            thisFile.write(firstChunk);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         Proxy.getCache().requestSize(size);
+        long totalRead = firstChunk.length;
         int readSize = 0;
         byte[] data = null;
-        do{
+        while(totalRead < size)
+        {
             try {
                 data = Proxy.getServer().readFile(serverFd);
             } catch (RemoteException e) {
@@ -255,12 +269,14 @@ public class CacheFileVersion {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        } while(readSize > 0);
+            totalRead += readSize;
+        }
         try {
             thisFile.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        this.size = size;
     }
 
     /**

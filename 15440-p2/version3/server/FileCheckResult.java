@@ -9,14 +9,18 @@ public class FileCheckResult implements Serializable{
     private Boolean canWrite;
     private int serverFd;
     private long size;
+    private byte[] firstChunk;
 
-    public FileCheckResult(int resCode, String relativePath, UUID verId, Boolean canRead, Boolean canWrite, int serverFd, long size) {
+    public FileCheckResult(int resCode, String relativePath, UUID verId, Boolean canRead, Boolean canWrite, int serverFd, long size, 
+            byte[] firstChunk) {
         this.resCode = resCode;
         this.relativePath = relativePath;
         this.verId = verId;
         this.canRead = canRead;
         this.canWrite = canWrite;
         this.serverFd = serverFd;
+        this.size = size;
+        this.firstChunk = firstChunk;
     }
 
     public int getResCode() {
@@ -45,6 +49,10 @@ public class FileCheckResult implements Serializable{
 
     public long getSize() {
         return size;
+    }
+
+    public byte[] getFirstChunk() {
+        return firstChunk;
     }
 
     public String toString(){

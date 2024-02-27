@@ -16,10 +16,12 @@ public class ServerFDTable {
     public Boolean verifyFd(int fd) {
         lock.readLock().lock();
         if(fd < 0 || fd >= openFiles.size()) {
+            lock.readLock().unlock();
             return false;
         }
 
         if(openFiles.get(fd) == null) {
+            lock.readLock().unlock();
             return false;
         }
 

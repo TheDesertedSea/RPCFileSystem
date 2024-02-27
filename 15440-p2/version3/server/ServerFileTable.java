@@ -21,7 +21,7 @@ public class ServerFileTable {
         }
         if (serverFile == null) {
             if (createIfNotExist) {
-                serverFile = new ServerFile(this, relativePath, UUID.randomUUID()); // create a temp file
+                serverFile = new ServerFile(this, relativePath, UUID.randomUUID(), true, true);
                 return serverFile;
             } else {
                 return null;
@@ -44,7 +44,7 @@ public class ServerFileTable {
         if (fileRemoved == null) {
             File file = new File(rootdir + relativePath);
             if (!file.exists()) {
-                res = ResCode.NOT_EXIST;
+                res = ResCode.ENOENT;
             } else {
                 file.delete();
             }
@@ -69,8 +69,10 @@ public class ServerFileTable {
     private ServerFile manageFile(String relativePath) {
         File file = new File(rootdir + relativePath);
         if (!file.exists()) {
+            Logger.log("Try to manage File: " + file.getAbsolutePath() + " does not exist");
             return null;
         }
+        Logger.log("Managed File: " + file.getAbsolutePath() + " size: " + file.length());
         ServerFile serverFile = new ServerFile(this, relativePath, UUID.randomUUID());
         fileTable.put(relativePath, serverFile);
         return serverFile;

@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public class Server extends UnicastRemoteObject implements ServerOperations {
 
-    public static final int CHUNK_SIZE = 1024 * 1024;
+    public static final int CHUNK_SIZE = 1024 * 128;
 
     private String rootdir;
     private ServerFileTable fileTable;
@@ -57,27 +57,30 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
         String absolutePathStr = PathTools.getAbsolutePath(reqPathStr, rootdir);
         int pathCheckRes = PathTools.checkPath(absolutePathStr, rootdir);
         if (pathCheckRes < 0) {
-            return new FileCheckResult(pathCheckRes, null, null, false, false, -1, -1);
+            return new FileCheckResult(pathCheckRes, null, null, false, false, -1, -1, null);
         }
         File file = new File(absolutePathStr);
         if (file.isDirectory()) {
-            return new FileCheckResult(ResCode.EISDIR, null, null, false, false, -1, -1);
+            return new FileCheckResult(ResCode.EISDIR, null, null, false, false, -1, -1, null);
         }
 
         /* Get the file from the file table */
         String relativePath = PathTools.getRelativePath(absolutePathStr, rootdir);
         ServerFile serverFile = fileTable.getFile(relativePath, true, null, false);
         if (serverFile == null) {
-            return new FileCheckResult(ResCode.NOT_EXIST, relativePath, null, false, false, -1, -1);
+            return new FileCheckResult(ResCode.NOT_EXIST, relativePath, null, false, false, -1, -1, null);
         }
         if (proxyVerId != null && proxyVerId.equals(serverFile.getVerId())) {
             return new FileCheckResult(ResCode.NO_UPDATE, relativePath, proxyVerId, serverFile.canRead(),
-                    serverFile.canWrite(), -1, -1);
+                    serverFile.canWrite(), -1, -1, null);
         }
 
-        int serverFd = fdTable.addOpenFile(serverFile.open(true, null));
-        return new FileCheckResult(ResCode.NEW_VERSION, relativePath, serverFile.getVerId(), serverFile.canRead(),
-                serverFile.canWrite(), serverFd, serverFile.getSize());
+        ServerOpenFile openFile = serverFile.open(true, null);
+        int serverFd = fdTable.addOpenFile(openFile);
+        FileCheckResult fileCheckResult = new FileCheckResult(ResCode.NEW_VERSION, relativePath, serverFile.getVerId(), serverFile.canRead(),
+        serverFile.canWrite(), serverFd, serverFile.getSize(), openFile.read());
+        Logger.log("File check result: " + fileCheckResult.toString());
+        return fileCheckResult;
     }
 
     @Override

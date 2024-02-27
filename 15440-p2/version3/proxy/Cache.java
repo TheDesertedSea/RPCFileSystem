@@ -32,6 +32,7 @@ public class Cache {
         freeSizeLock.writeLock().lock();
         evictToSize(size);
         freeSize -= size;
+        Logger.LRUlog("Request size: " + size + " free size: " + freeSize);
         Logger.log("Request size: " + size + " free size: " + freeSize);
         freeSizeLock.writeLock().unlock();
     }
@@ -45,6 +46,7 @@ public class Cache {
     public void releaseSize(long size) {
         freeSizeLock.readLock().lock();
         freeSize += size;
+        Logger.LRUlog("Release size: " + size + " free size: " + freeSize);
         Logger.log("Release size: " + size + " free size: " + freeSize);
         freeSizeLock.readLock().unlock();
     }
@@ -142,12 +144,12 @@ public class Cache {
         CacheFile file = cacheFileTable.get(result.getRelativePath());
         FileOpenResult openResult = null;
         if(file == null){
-            file = new CacheFile(result.getRelativePath(), result.getVerId(), result.getCanRead(), result.getCanWrite(), result.getServerFd(), result.getSize());
+            file = new CacheFile(result.getRelativePath(), result.getVerId(), result.getCanRead(), result.getCanWrite(), result.getServerFd(), result.getSize(), result.getFirstChunk());
             cacheFileTable.put(result.getRelativePath(), file);
             insertToLRU(file);
             openResult = file.open(read, write);
         } else {
-            file.update(result.getVerId(), result.getCanRead(), result.getCanWrite(), result.getServerFd(), result.getSize());
+            file.update(result.getVerId(), result.getCanRead(), result.getCanWrite(), result.getServerFd(), result.getSize(), result.getFirstChunk());
             updateLRU(file);
             openResult = file.open(read, write);
         }
@@ -207,17 +209,36 @@ public class Cache {
      * @param sizeRequired
      */
     private void evictToSize(long sizeRequired) {
+        if(freeSize >= sizeRequired){
+            Logger.LRUlog("Free size is enough, no need to evict");
+            return;
+        }
+        Logger.LRUlog("Current free size: " + freeSize + " required size: " + sizeRequired);
         tableLock.lock();
         CacheFile file = leastRecentUsed;
         while (freeSize < sizeRequired) {
             if (file == null) {
-                Logger.log("Error: Cannot evict to required size");
-                break;
+                if(leastRecentUsed == null){
+                    Logger.log("Cache is empty but size is not enough");
+                    tableLock.unlock();
+                    return;
+                }
+                Logger.LRUlog("No file to evict now, sleep and try again");
+                //sleep and try again
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                file = leastRecentUsed;
             }
+            Logger.LRUlog("Try to evict file: " + file.getRelativePath());
             if (file.isNewestInUse()) {
                 file = file.getPrev();
+                Logger.LRUlog("File is in use, skip");
                 continue;
             }
+            Logger.LRUlog("Evict file: " + file.getRelativePath());
             cacheFileTable.remove(file.getRelativePath());
             removeFromLRU(file);
             file.remove();
