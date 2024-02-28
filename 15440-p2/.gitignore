@@ -4,4 +4,4 @@ version1/*.class
 version2/*.class
 version3/*.class
 *.tgz
-error_version1/
+error_version1/*.class

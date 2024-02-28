@@ -1,3 +1,4 @@
+import java.io.RandomAccessFile;
 import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.UUID;
@@ -31,6 +32,8 @@ public class Cache {
         freeSizeLock.writeLock().lock();
         evictToSize(size);
         freeSize -= size;
+        Logger.LRUlog("Request size: " + size + " free size: " + freeSize);
+        Logger.log("Request size: " + size + " free size: " + freeSize);
         freeSizeLock.writeLock().unlock();
     }
 
@@ -43,6 +46,8 @@ public class Cache {
     public void releaseSize(long size) {
         freeSizeLock.readLock().lock();
         freeSize += size;
+        Logger.LRUlog("Release size: " + size + " free size: " + freeSize);
+        Logger.log("Release size: " + size + " free size: " + freeSize);
         freeSizeLock.readLock().unlock();
     }
 
@@ -51,34 +56,26 @@ public class Cache {
     }
 
     private FileOpenResult open(String relativePath, Boolean read, Boolean write, Boolean create, Boolean exclusive) {
+        Logger.log("Open file: " + relativePath + " read: " + read + " write: " + write + " create: " + create + " exclusive: " + exclusive);
         tableLock.lock();
         CacheFile file = cacheFileTable.get(relativePath);
         FileOpenResult result = null;
         if (file == null) {
             if (!create) {
+                tableLock.unlock();
                 return new FileOpenResult(ResCode.ENOENT, null);
             }
-            file = cacheFileTable.get(relativePath);
-            if (file == null) {
-                file = new CacheFile(relativePath, UUID.randomUUID(), read, write, new byte[0]);
-                cacheFileTable.put(relativePath, file);
-                insertToLRU(file);
-            } else {
-                if (exclusive) {
-                    tableLock.unlock();
-                    return new FileOpenResult(ResCode.EEXIST, null);
-                }
-            }
-            updateLRU(file);
-            result = file.open(read, write);
+            CacheFileVersion fileVersion = new CacheFileVersion(null, relativePath, UUID.randomUUID(), true, true, 0, null);
+            result = fileVersion.open(true, true);
             tableLock.unlock();
         } else {
-            updateLRU(file);
-            result = file.open(read, write);
-            tableLock.unlock();
             if (exclusive) {
+                tableLock.unlock();
                 return new FileOpenResult(ResCode.EEXIST, null);
             }
+            _updateLRU(file);
+            result = file.open(read, write);
+            tableLock.unlock(); 
         }
         return result;
     }
@@ -89,7 +86,9 @@ public class Cache {
      * @return
      */
     public FileOpenResult checkAndOpen(String relativePath, Boolean read, Boolean write, Boolean create, Boolean exclusive){
+        Logger.log("Check and open file: " + relativePath + " read: " + read + " write: " + write + " create: " + create + " exclusive: " + exclusive);
         tableLock.lock();
+        Logger.log("Just test");
         CacheFile file = cacheFileTable.get(relativePath);
         UUID verId = null;
         if(file != null){
@@ -97,13 +96,15 @@ public class Cache {
         } 
         tableLock.unlock();
 
-        FileGetResult result = null;
+        FileCheckResult result = null;
         /* Get new version from server */
         try {
-            result = Proxy.getServer().getFile(relativePath, verId);
+            result = Proxy.getServer().checkFile(relativePath, verId);
         } catch (RemoteException e) {
             e.printStackTrace();
         }
+
+        Logger.log("Check file result:" + result.toString());
 
         if(result.getResCode() < 0){
             return new FileOpenResult(result.getResCode(), null);
@@ -116,7 +117,14 @@ public class Cache {
                 if(exclusive){
                     return new FileOpenResult(ResCode.EEXIST, null);
                 }
-                return updateAndOpen(result, read, write);
+                FileOpenResult openResult = updateAndOpen(result, read, write);
+                try {
+                    Proxy.getServer().closeFile(result.getServerFd());
+                } catch (RemoteException e) {
+
+                    e.printStackTrace();
+                }
+                return openResult;
             case ResCode.IS_DIR:
                 if(write || create || exclusive){
                     return new FileOpenResult(ResCode.EISDIR, null);
@@ -130,39 +138,65 @@ public class Cache {
         }
     }
 
-    private FileOpenResult updateAndOpen(FileGetResult result, Boolean read, Boolean write){
+    private FileOpenResult updateAndOpen(FileCheckResult result, Boolean read, Boolean write){
+        Logger.log("Update and open file: " + result.getRelativePath() + " read: " + read + " write: " + write);
         tableLock.lock();
         CacheFile file = cacheFileTable.get(result.getRelativePath());
         FileOpenResult openResult = null;
         if(file == null){
-            file = new CacheFile(result.getRelativePath(), result.getVerId(), result.getCanRead(), result.getCanWrite(), result.getData());
+            Logger.LRUlog("Add new file to cache: " + result.getRelativePath() + " with verId: " + result.getVerId().toString());
+            file = new CacheFile(result.getRelativePath(), result.getVerId(), result.getCanRead(), result.getCanWrite(), result.getServerFd(), result.getSize(), result.getFirstChunk());
             cacheFileTable.put(result.getRelativePath(), file);
             insertToLRU(file);
             openResult = file.open(read, write);
-        } else {
-            file.update(result.getVerId(), result.getCanRead(), result.getCanWrite(), result.getData());
-            updateLRU(file);
+        } else if(!file.getNewestVerId().equals(result.getVerId())) {
+            Logger.LRUlog("Update file in cache: " + result.getRelativePath() + " with verId: " + result.getVerId().toString());
+            file.update(result.getVerId(), result.getCanRead(), result.getCanWrite(), result.getServerFd(), result.getSize(), result.getFirstChunk());
+            _updateLRU(file);
+            openResult = file.open(read, write);
+        } else{
+            Logger.LRUlog("File is already newest version: " + result.getRelativePath() + " with verId: " + result.getVerId().toString());
+            _updateLRU(file);
             openResult = file.open(read, write);
         }
         tableLock.unlock();
         return openResult;
     }
 
-    public void updateFile(String relativePath, byte[] data, UUID verId){
+    public void updateFile(String relativePath, RandomAccessFile raf, UUID verId){
         tableLock.lock();
         CacheFile file = cacheFileTable.get(relativePath);
         if(file != null){
-            file.update(verId, true, true, data);
-            updateLRU(file);
+            Logger.log("Update file in table: " + relativePath + " with verId: " + verId.toString());
+            Logger.log("old verId: " + file.getNewestVerId().toString());
+            file.update(verId, true, true, raf);
+            _updateLRU(file);
         } else {
-            file = new CacheFile(relativePath, verId, true, true, data);
+            Logger.log("Update and add new file to table: " + relativePath + " with verId: " + verId.toString());
+            file = new CacheFile(relativePath, verId, true, true, raf);
             cacheFileTable.put(relativePath, file);
             insertToLRU(file);
         }
         tableLock.unlock();
     }
 
+    public void updateFile(CacheFileVersion fileVersion){
+        Logger.log("Update file in cache: " + fileVersion.getRelativePath() + " with verId: " + fileVersion.getVerId().toString());
+        tableLock.lock();
+        CacheFile file = cacheFileTable.get(fileVersion.getRelativePath());
+        if(file != null){
+            file.update(fileVersion);
+            _updateLRU(file);
+        } else {
+            file = new CacheFile(fileVersion.getRelativePath(), fileVersion);
+            cacheFileTable.put(fileVersion.getRelativePath(), file);
+            insertToLRU(file);
+        }
+        tableLock.unlock();
+    }
+
     public void removeFile(String relativePath){
+        Logger.log("Remove file from cache: " + relativePath);
         tableLock.lock();
         CacheFile file = cacheFileTable.get(relativePath);
         if(file != null){
@@ -181,21 +215,42 @@ public class Cache {
      * @param sizeRequired
      */
     private void evictToSize(long sizeRequired) {
+        if(freeSize >= sizeRequired){
+            Logger.LRUlog("Free size is enough, no need to evict");
+            return;
+        }
+        Logger.LRUlog("Current free size: " + freeSize + " required size: " + sizeRequired);
         tableLock.lock();
         CacheFile file = leastRecentUsed;
         while (freeSize < sizeRequired) {
             if (file == null) {
-                Logger.log("Error: Cannot evict to required size");
-                break;
+                if(leastRecentUsed == null){
+                    Logger.log("Cache is empty but size is not enough");
+                    tableLock.unlock();
+                    return;
+                }
+                Logger.LRUlog("No file to evict now, sleep and try again");
+                //sleep and try again
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                file = leastRecentUsed;
             }
+            Logger.LRUlog("Try to evict file: " + file.getRelativePath());
             if (file.isNewestInUse()) {
                 file = file.getPrev();
+                Logger.LRUlog("File is in use, skip");
                 continue;
             }
+            Logger.LRUlog("Evict file: " + file.getRelativePath());
             cacheFileTable.remove(file.getRelativePath());
             removeFromLRU(file);
             file.remove();
+            Logger.log("Evicted file: " + file.getRelativePath());
             file = file.getPrev();
+            Logger.LRUlog(getLRUStatus());
         }
         tableLock.unlock();
     }
@@ -215,6 +270,7 @@ public class Cache {
             mostRecentUsed.setPrev(file);
             mostRecentUsed = file;
         }
+        Logger.LRUlog(getLRUStatus());
     }
 
     /**
@@ -234,10 +290,23 @@ public class Cache {
         } else {
             leastRecentUsed = file.getPrev();
         }
+        //file.setPrev(null); // original error version doesn't have this line
+        //file.setNext(null); // original error version doesn't have this line
+    }
 
-        // Version 2 has a bug here, should set prev and next to null
-        // file.setPrev(null);
-        // file.setNext(null);
+    /**
+     * Get the status of LRU list
+     * 
+     * @return {@link String} The file sequence in LRU list
+     */
+    private String getLRUStatus() {
+        String status = "LRU status: ";
+        CacheFile file = mostRecentUsed;
+        while (file != null) {
+            status += file.getRelativePath() + " ";
+            file = file.getNext();
+        }
+        return status;
     }
 
     /**
@@ -246,8 +315,14 @@ public class Cache {
      * 
      * @param file
      */
-    private void updateLRU(CacheFile file) {
+    private void _updateLRU(CacheFile file) {
         removeFromLRU(file);
         insertToLRU(file);
+    }
+    
+    public void updateLRU(CacheFile file){
+        tableLock.lock();
+        _updateLRU(file);
+        tableLock.unlock();
     }
 }
