@@ -1,3 +1,7 @@
 sample/*.class
+mysolution/*.class
+version1/*.class
+version2/*.class
+version3/*.class
 *.tgz
 error_version1/
