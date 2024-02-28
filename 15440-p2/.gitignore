@@ -5,3 +5,5 @@ version2/*.class
 version3/*.class
 *.tgz
 error_version1/*.class
+cache/
+cache2/
