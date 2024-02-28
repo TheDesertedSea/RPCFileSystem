@@ -250,7 +250,7 @@ public class Cache {
             file.remove();
             Logger.log("Evicted file: " + file.getRelativePath());
             file = file.getPrev();
-            Logger.LRUlog(getLRUStatus());
+            //Logger.LRUlog(getLRUStatus());
         }
         tableLock.unlock();
     }
@@ -270,7 +270,7 @@ public class Cache {
             mostRecentUsed.setPrev(file);
             mostRecentUsed = file;
         }
-        Logger.LRUlog(getLRUStatus());
+        //Logger.LRUlog(getLRUStatus());
     }
 
     /**
