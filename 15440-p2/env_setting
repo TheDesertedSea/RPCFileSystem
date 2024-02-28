@@ -1,0 +1,7 @@
+export CLASSPATH=$PWD/lib:$PWD/version3
+export pin15440=123456789
+export proxyport15440=4041
+
+java Server 4040 ..
+pin15440=123456789 proxyport15440=4041 java Proxy localhost 4040 cache 5767168
+pin15440=123456789 proxyport15440=4042 java Proxy localhost 4040 cache 5767168

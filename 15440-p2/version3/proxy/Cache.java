@@ -377,7 +377,6 @@ public class Cache {
         tableLock.lock();
         removeFromLRU(file);
         insertToLRU(file);
-        Logger.log(getLRUStatus());
         tableLock.unlock();
     }
 

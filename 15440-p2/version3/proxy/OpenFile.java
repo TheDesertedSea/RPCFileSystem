@@ -30,7 +30,7 @@ public class OpenFile {
      * {@link CacheFileVersion}
      * File version
      */
-    private CacheFileVersion version;
+    private CacheFileVersion fileVersion;
     /**
      * {@link RandomAccessFile}
      * Random access file
@@ -48,7 +48,7 @@ public class OpenFile {
     public OpenFile(Boolean read, Boolean write, CacheFileVersion version, RandomAccessFile raf) {
         this.read = read;
         this.write = write;
-        this.version = version;
+        this.fileVersion = version;
         this.raf = raf;
         this.isDirectory = false;
     }
@@ -62,7 +62,7 @@ public class OpenFile {
         this.read = true;
         this.write = false;
         this.isDirectory = isDirectory;
-        this.version = null;
+        this.fileVersion = null;
         this.raf = null;
     }
 
@@ -114,7 +114,7 @@ public class OpenFile {
         if (buf == null || buf.length == 0) {
             return;
         }
-        version.setSize(raf.getFilePointer() + buf.length); // Update the size of the file
+        fileVersion.setSize(raf.getFilePointer() + buf.length); // Update the size of the file
         raf.write(buf);
     }
 
@@ -136,15 +136,15 @@ public class OpenFile {
             return;
         }
 
-        Logger.log("Close file: " + version.getRelativePath());
+        Logger.log("Close(" + fileVersion.getRelativePath() + ")");
 
         try {
             raf.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        version.updateLRU();
-        version.release();
+        fileVersion.updateLRU(); // Update LRU list after closing the file
+        fileVersion.release();
     }
 
     /**
@@ -164,6 +164,6 @@ public class OpenFile {
      * @throws IOException
      */
     public long getLength() throws IOException {
-        return version.getSize();
+        return fileVersion.getSize();
     }
 }
