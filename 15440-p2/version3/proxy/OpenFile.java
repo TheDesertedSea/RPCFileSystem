@@ -46,6 +46,7 @@ public class OpenFile {
      * @param raf     {@link RandomAccessFile} Random access file
      */
     public OpenFile(Boolean read, Boolean write, CacheFileVersion version, RandomAccessFile raf) {
+        Logger.log("Open(" + version.getRelativePath() + ")");
         this.read = read;
         this.write = write;
         this.fileVersion = version;

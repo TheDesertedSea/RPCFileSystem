@@ -9,6 +9,7 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.rmi.Naming;
+import java.rmi.RemoteException;
 
 /**
  * Proxy class
@@ -40,46 +41,10 @@ class Proxy {
 		private FDTable fdTable;
 
 		/**
-		 * {@link OpenHandler}
-		 * Open handler
-		 */
-		private OpenHandler openHandler;
-		/**
-		 * {@link CloseHandler}
-		 * Close handler
-		 */
-		private CloseHandler closeHandler;
-		/**
-		 * {@link WriteHandler}
-		 * Write handler
-		 */
-		private WriteHandler writeHandler;
-		/**
-		 * {@link ReadHandler}
-		 * Read handler
-		 */
-		private ReadHandler readHandler;
-		/**
-		 * {@link LseekHandler}
-		 * Lseek handler
-		 */
-		private LseekHandler lseekHandler;
-		/**
-		 * {@link UnlinkHandler}
-		 * Unlink handler
-		 */
-		private UnlinkHandler unlinkHandler;
-
-		/**
 		 * Constructor
 		 */
 		public FileHandler() {
 			fdTable = new FDTable();
-			openHandler = null;
-			closeHandler = null;
-			writeHandler = null;
-			readHandler = null;
-			lseekHandler = null;
 		}
 
 		/**
@@ -90,12 +55,24 @@ class Proxy {
 		 * @return File descriptor if success, otherwise a negative error code
 		 */
 		public int open(String path, OpenOption option) {
-			Logger.log("Open(" + path + ")");
-			if (openHandler == null) {
-				openHandler = new OpenHandler(fdTable);
+			int fd = fdTable.getFreeFd();
+			if (fd < 0) {
+				return ResCode.EMFILE;
 			}
-			int res = openHandler.open(path, option);
-			return res;
+
+			Boolean write = option != FileHandling.OpenOption.READ;
+			Boolean read = true;
+			Boolean create = option == FileHandling.OpenOption.CREATE || option == FileHandling.OpenOption.CREATE_NEW;
+			Boolean exclusive = option == FileHandling.OpenOption.CREATE_NEW;
+			String normalizedPath = PathTools.normalizePath(path);
+
+			FileOpenResult result = cache.checkAndOpen(path, read, write, create, exclusive); // Check and open the file
+			if (result.getResCode() < 0) {
+				return result.getResCode();
+			}
+
+			fdTable.addOpenFile(fd, result.getOpenFile());
+			return fd;
 		}
 
 		/**
@@ -105,11 +82,13 @@ class Proxy {
 		 * @return 0 if success, otherwise a negative error code
 		 */
 		public int close(int fd) {
-			if (closeHandler == null) {
-				closeHandler = new CloseHandler(fdTable);
+			if (!fdTable.verifyFd(fd)) {
+				return ResCode.EBADF;
 			}
 
-			closeHandler.close(fd);
+			OpenFile file = fdTable.getOpenFile(fd);
+			file.close();
+			fdTable.removeOpenFile(fd);
 			return 0;
 		}
 
@@ -121,11 +100,30 @@ class Proxy {
 		 * @return Number of bytes written if success, otherwise a negative error code
 		 */
 		public long write(int fd, byte[] buf) {
-			if (writeHandler == null) {
-				writeHandler = new WriteHandler(fdTable);
+			if (buf == null) {
+				return ResCode.EINVAL;
 			}
-			long res = writeHandler.write(fd, buf);
-			return res;
+
+			if (!fdTable.verifyFd(fd)) {
+				return ResCode.EBADF;
+			}
+
+			OpenFile file = fdTable.getOpenFile(fd);
+			if (file.isDirectory()) {
+				return ResCode.EBADF;
+			}
+			if (!file.canWrite()) {
+				return ResCode.EBADF;
+			}
+
+			try {
+				file.write(buf);
+				return buf.length;
+			} catch (IOException e) {
+				System.out.println(e);
+				System.exit(-1);
+			}
+			return 0;
 		}
 
 		/**
@@ -136,11 +134,26 @@ class Proxy {
 		 * @return Number of bytes read if success, otherwise a negative error code
 		 */
 		public long read(int fd, byte[] buf) {
-			if (readHandler == null) {
-				readHandler = new ReadHandler(fdTable);
+			if (buf == null) {
+				return ResCode.EINVAL;
 			}
-			long res = readHandler.read(fd, buf);
-			return res;
+
+			if (!fdTable.verifyFd(fd)) {
+				return ResCode.EBADF;
+			}
+
+			OpenFile file = fdTable.getOpenFile(fd);
+			if (file.isDirectory()) {
+				return ResCode.EISDIR;
+			}
+			try {
+				long readCount = file.read(buf);
+				return readCount == -1 ? 0 : readCount;
+			} catch (IOException e) {
+				System.out.println(e);
+				System.exit(-1);
+			}
+			return 0;
 		}
 
 		/**
@@ -152,11 +165,42 @@ class Proxy {
 		 * @return 0 if success, otherwise a negative error code
 		 */
 		public long lseek(int fd, long pos, LseekOption option) {
-			if (lseekHandler == null) {
-				lseekHandler = new LseekHandler(fdTable);
+			if (!fdTable.verifyFd(fd)) {
+				return ResCode.EBADF;
 			}
-			long res = lseekHandler.lseek(fd, pos, option);
-			return res;
+
+			OpenFile file = fdTable.getOpenFile(fd);
+			if (file.isDirectory()) {
+				return ResCode.EBADF;
+			}
+			try {
+				switch (option) {
+					case FROM_START:
+						file.lseek(pos);
+						break;
+					case FROM_CURRENT:
+						file.lseek(file.getFilePointer() + pos);
+						break;
+					case FROM_END:
+						file.lseek(file.getLength() + pos);
+						break;
+					default:
+						return ResCode.EINVAL;
+				}
+			} catch (IOException e) {
+				System.out.println(e);
+				System.exit(-1);
+			}
+
+			long cur = 0;
+			try {
+				cur = file.getFilePointer();
+			} catch (IOException e) {
+				System.out.println(e);
+				System.exit(-1);
+			}
+
+			return cur;
 		}
 
 		/**
@@ -166,11 +210,16 @@ class Proxy {
 		 * @return 0 if success, otherwise a negative error code
 		 */
 		public int unlink(String path) {
-			if (unlinkHandler == null) {
-				unlinkHandler = new UnlinkHandler();
+			try {
+				FileRemoveResult res = Proxy.getServer().removeFile(path); // Remove on server
+				if (res.getResCode() < 0) {
+					return res.getResCode(); // Return error code if failed
+				}
+				Proxy.getCache().removeFile(res.getRelativePath()); // Remove from cache
+			} catch (RemoteException e) {
+				e.printStackTrace();
 			}
-			int res = unlinkHandler.unlink(path);
-			return res;
+			return 0;
 		}
 
 		public void clientdone() {
