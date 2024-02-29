@@ -89,9 +89,9 @@ public class ServerFile {
      * 
      * @param read     {@link Boolean} True if the file is opened for only reading
      * @param newVerId {@link UUID} New version ID
-     * @return {@link ServerOpenFile} Opened file
+     * @return {@link ServerTempFile} Opened file
      */
-    public ServerOpenFile open(Boolean read, UUID newVerId) {
+    public ServerTempFile open(Boolean read, UUID newVerId) {
         File originalFile = new File(rootdir + relativePath);
         File tempFile = new File(rootdir + relativePath + "." + UUID.randomUUID().toString()); // Temporary file
         try {
@@ -100,7 +100,7 @@ public class ServerFile {
             e.printStackTrace();
         }
         if (!originalFile.exists()) {
-            return new ServerOpenFile(this, tempFile, read ? verId : newVerId, read);
+            return new ServerTempFile(this, tempFile, read ? verId : newVerId, read);
         }
 
         /* Copy the original file to the temporary file */
@@ -120,9 +120,9 @@ public class ServerFile {
             tempFileRandomAccessFile.close();
 
             if (read) {
-                return new ServerOpenFile(this, tempFile, verId, true);
+                return new ServerTempFile(this, tempFile, verId, true);
             } else {
-                return new ServerOpenFile(this, tempFile, newVerId, false);
+                return new ServerTempFile(this, tempFile, newVerId, false);
             }
         } catch (Exception e) {
             e.printStackTrace();

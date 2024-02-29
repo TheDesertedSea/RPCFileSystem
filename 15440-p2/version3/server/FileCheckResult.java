@@ -36,7 +36,7 @@ public class FileCheckResult implements Serializable {
      */
     private Boolean canWrite;
     /**
-     * File descriptor of the file in the server
+     * File descriptor of the temp file in the server
      */
     private int serverFd;
     /**

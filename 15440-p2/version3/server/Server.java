@@ -36,10 +36,10 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
      */
     private ServerFileTable fileTable;
     /**
-     * {@link ServerFDTable}
+     * {@link ServerTempFDTable}
      * File descriptor table of the server
      */
-    private ServerFDTable fdTable;
+    private ServerTempFDTable fdTable;
 
     /**
      * Constructor
@@ -51,7 +51,7 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
         super();
         this.rootdir = rootdir;
         this.fileTable = new ServerFileTable(this);
-        this.fdTable = new ServerFDTable();
+        this.fdTable = new ServerTempFDTable();
     }
 
     /**
@@ -113,7 +113,7 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
         }
 
         // Return result of new version
-        ServerOpenFile openFile = serverFile.open(true, null);
+        ServerTempFile openFile = serverFile.open(true, null);
         int serverFd = fdTable.addOpenFile(openFile);
         FileCheckResult fileCheckResult = new FileCheckResult(ResCode.NEW_VERSION, relativePath, serverFile.getVerId(),
                 serverFile.canRead(),
@@ -132,7 +132,7 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
         if (!fdTable.verifyFd(serverFd)) {
             throw new RemoteException("Invalid file descriptor");
         }
-        ServerOpenFile openFile = fdTable.getOpenFile(serverFd);
+        ServerTempFile openFile = fdTable.getOpenFile(serverFd);
         openFile.close();
         fdTable.removeOpenFile(serverFd);
     }
@@ -151,7 +151,7 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
         if (!fdTable.verifyFd(serverFd)) {
             throw new RemoteException("Invalid file descriptor");
         }
-        ServerOpenFile openFile = fdTable.getOpenFile(serverFd);
+        ServerTempFile openFile = fdTable.getOpenFile(serverFd);
         return openFile.read();
     }
 
@@ -163,7 +163,7 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
      * 
      * @param relativePath {@link String} Relative path of the file
      * @param verId        {@link UUID} Version ID of the file
-     * @return File descriptor of the file on the server for later data transfer
+     * @return File descriptor of the temp file on the server for later data transfer
      * @throws RemoteException
      */
     public int putFile(String relativePath, UUID verId) throws RemoteException {
@@ -186,7 +186,7 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
         if (!fdTable.verifyFd(serverFd)) {
             throw new RemoteException("Invalid file descriptor");
         }
-        ServerOpenFile openFile = fdTable.getOpenFile(serverFd);
+        ServerTempFile openFile = fdTable.getOpenFile(serverFd);
         openFile.write(data);
     }
 

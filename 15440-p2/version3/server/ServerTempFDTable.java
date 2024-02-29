@@ -1,6 +1,6 @@
 
 /**
- * ServerFDTable.java
+ * ServerTempFDTable.java
  * 
  * @author Cundao Yu <cundaoy@andrew.cmu.edu>
  */
@@ -9,19 +9,19 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * File descriptor table for server
+ * File descriptor table for temp files on server
  */
-public class ServerFDTable {
+public class ServerTempFDTable {
     /**
      * Max size of the table
      */
     private static final int MAX_SIZE = 10240;
 
     /**
-     * {@link List}<{@link ServerOpenFile}>
+     * {@link List}<{@link ServerTempFile}>
      * Open files table, index is the file descriptor
      */
-    private List<ServerOpenFile> openFiles;
+    private List<ServerTempFile> openFiles;
     /**
      * {@link ReentrantReadWriteLock}
      * Lock for the table
@@ -31,8 +31,8 @@ public class ServerFDTable {
     /**
      * Constructor
      */
-    public ServerFDTable() {
-        openFiles = new ArrayList<ServerOpenFile>();
+    public ServerTempFDTable() {
+        openFiles = new ArrayList<ServerTempFile>();
         lock = new ReentrantReadWriteLock();
     }
 
@@ -81,10 +81,10 @@ public class ServerFDTable {
     /**
      * Add an open file to the table
      * 
-     * @param file {@link ServerOpenFile} Open file
+     * @param file {@link ServerTempFile} Open file
      * @return File descriptor
      */
-    public int addOpenFile(ServerOpenFile file) {
+    public int addOpenFile(ServerTempFile file) {
         lock.writeLock().lock();
         int fd = getFreeFd();
         openFiles.set(fd, file);
@@ -96,11 +96,11 @@ public class ServerFDTable {
      * Get the open file from the table
      * 
      * @param fd File descriptor
-     * @return {@link ServerOpenFile} Open file
+     * @return {@link ServerTempFile} Open file
      */
-    public ServerOpenFile getOpenFile(int fd) {
+    public ServerTempFile getOpenFile(int fd) {
         lock.readLock().lock();
-        ServerOpenFile file = openFiles.get(fd);
+        ServerTempFile file = openFiles.get(fd);
         lock.readLock().unlock();
         return file;
     }

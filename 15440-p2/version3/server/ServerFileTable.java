@@ -91,6 +91,8 @@ public class ServerFileTable {
     /**
      * Update a file in the file table using a temporary file
      * 
+     * Create a new file if the file does not exist
+     * 
      * @param relativePath {@link String} Relative path
      * @param tempFile     {@link File} Temporary file
      * @param verId        {@link UUID} Version ID

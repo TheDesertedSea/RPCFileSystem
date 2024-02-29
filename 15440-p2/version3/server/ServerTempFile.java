@@ -1,5 +1,5 @@
 /**
- * ServerOpenFile.java
+ * ServerTempFile.java
  * 
  * @author Cundao Yu <cundaoy@andrew.cmu.edu>
  */
@@ -10,11 +10,11 @@ import java.io.RandomAccessFile;
 import java.util.UUID;
 
 /**
- * Open file class in the server
+ * Temp file class in the server
  * 
  * This is used to write/read data by chunks to/from a temporary file
  */
-public class ServerOpenFile {
+public class ServerTempFile {
     /**
      * {@link ServerFileTable}
      * File table of the server
@@ -58,7 +58,7 @@ public class ServerOpenFile {
      * @param verId      {@link UUID} Version ID
      * @param read       {@link Boolean} True if the file can be read
      */
-    public ServerOpenFile(ServerFile serverFile, File tempFile, UUID verId, Boolean read){
+    public ServerTempFile(ServerFile serverFile, File tempFile, UUID verId, Boolean read){
         this.fileTable = serverFile.getFileTable();
         this.relativePath = serverFile.getRelativePath();
         this.tempFile = tempFile;

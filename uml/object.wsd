@@ -1,15 +1,20 @@
-@startuml Proxy
+@startuml project2
+Proxy "1" o-- "1" Cache
+Cache "1" o-- "0..n" CacheFile
+CacheFile "1" o-- "1" CacheFileVersion
+OpenFile "0..n" -- "1" CacheFileVersion
 
-class Proxy{
-    + int open(String path, OpenOption option)
-    + int close(int fd)
-    + long write(int fd, byte[] buf)
-    + long read(int fd, byte[] buf)
-    + long lseek(int fd, long pos, LseekOption option)
-    + int unlink(String path)
-}
+Proxy "1" o-- "0..n" FileHandler
+FileHandler "1" o-- "1" FDTable
+FDTable "1" o-- "0..n" OpenFile
 
-class Cache{
-    
-}
+Proxy "0..n" -- "1" ServerOperations
+
+interface ServerOperations{}
+Server --|> ServerOperations
+Server "1" -- "1" ServerTempFDTable
+ServerTempFDTable "1" o-- "0..n" ServerTempFile
+Server "1" -- "1" ServerFileTable
+ServerFileTable "1" o-- "0..n" ServerFile
+ServerTempFile "0..n" -- "1" ServerFile
 @enduml

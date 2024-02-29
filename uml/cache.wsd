@@ -1,0 +1,51 @@
+@startuml project2
+
+
+Proxy "1" o-- "1" Cache
+Cache "1" o-- "0..n" CacheFile
+CacheFile "1" o-- "1" CacheFileVersion
+OpenFile "0..n" -- "1" CacheFileVersion
+CacheFile "0..2" -- "1" CacheFile
+
+Proxy "1" o-- "0..n" FileHandler
+FileHandler "1" o-- "1" FDTable
+FDTable "1" o-- "0..n" OpenFile
+
+class Cache
+{
+    + void requestSize(long size)
+    + void releaseSize(long size)
+    - void evictToSize(long sizeRequired)
+
+    + FileOpenResult checkAndOpen(String relativePath, Boolean read, Boolean write, Boolean create, Boolean exclusive)
+    + void updateFile(CacheFileVersion fileVersion)
+    + void removeFile(String relativePath)
+}
+
+class CacheFile
+{
+    - CacheFile prev
+    - CacheFile next
+    + FileOpenResult open(Boolean read, Boolean write)
+    + void update(UUID verId, Boolean canRead, Boolean canWrite, int serverFd, long size, byte[] firstChunk)
+    + void update(CacheFileVersion fileVersion)
+    + void remove()
+}
+
+class CacheFileVersion
+{
+    + synchronized Boolean use()
+    + synchronized void release()
+    + FileOpenResult open(Boolean read, Boolean write)
+    + CacheFileVersion getWriteCopy()
+}
+
+class OpenFile
+{
+    + long read(byte[] buf)
+    + void write(byte[] buf)
+    + void lseek(long pos)
+    + void close()
+}
+
+@enduml
