@@ -1,0 +1,15 @@
+@startuml Proxy
+
+class Proxy{
+    + int open(String path, OpenOption option)
+    + int close(int fd)
+    + long write(int fd, byte[] buf)
+    + long read(int fd, byte[] buf)
+    + long lseek(int fd, long pos, LseekOption option)
+    + int unlink(String path)
+}
+
+class Cache{
+    
+}
+@enduml
