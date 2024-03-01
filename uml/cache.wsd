@@ -26,6 +26,7 @@ class CacheFile
 {
     - CacheFile prev
     - CacheFile next
+    - CacheFileVersion newestVersion
     + FileOpenResult open(Boolean read, Boolean write)
     + void update(UUID verId, Boolean canRead, Boolean canWrite, int serverFd, long size, byte[] firstChunk)
     + void update(CacheFileVersion fileVersion)
