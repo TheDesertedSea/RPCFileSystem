@@ -122,22 +122,6 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
     }
 
     /**
-     * Close the opened temporary file on the server
-     * 
-     * @param serverFd File descriptor of the file on the server
-     * @throws RemoteException
-     */
-    @Override
-    public void closeFile(int serverFd) throws RemoteException {
-        if (!fdTable.verifyFd(serverFd)) {
-            throw new RemoteException("Invalid file descriptor");
-        }
-        ServerTempFile openFile = fdTable.getOpenFile(serverFd);
-        openFile.close();
-        fdTable.removeOpenFile(serverFd);
-    }
-
-    /**
      * Read the file on the server
      * 
      * Used to read by chunks
@@ -163,7 +147,8 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
      * 
      * @param relativePath {@link String} Relative path of the file
      * @param verId        {@link UUID} Version ID of the file
-     * @return File descriptor of the temp file on the server for later data transfer
+     * @return File descriptor of the temp file on the server for later data
+     *         transfer
      * @throws RemoteException
      */
     public int putFile(String relativePath, UUID verId) throws RemoteException {
@@ -188,6 +173,22 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
         }
         ServerTempFile openFile = fdTable.getOpenFile(serverFd);
         openFile.write(data);
+    }
+
+    /**
+     * Close the opened temporary file on the server
+     * 
+     * @param serverFd File descriptor of the file on the server
+     * @throws RemoteException
+     */
+    @Override
+    public void closeFile(int serverFd) throws RemoteException {
+        if (!fdTable.verifyFd(serverFd)) {
+            throw new RemoteException("Invalid file descriptor");
+        }
+        ServerTempFile openFile = fdTable.getOpenFile(serverFd);
+        openFile.close();
+        fdTable.removeOpenFile(serverFd);
     }
 
     /**

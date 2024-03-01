@@ -24,14 +24,6 @@ public interface ServerOperations extends Remote {
     FileCheckResult checkFile(String reqPathStr, UUID proxyVerId) throws RemoteException;
 
     /**
-     * Close a temporary file on the server
-     * 
-     * @param serverFd File descriptor of the file in the server
-     * @throws RemoteException
-     */
-    void closeFile(int serverFd) throws RemoteException;
-
-    /**
      * Read from a temporary file on the server
      * 
      * @param serverFd File descriptor of the file in the server
@@ -60,6 +52,14 @@ public interface ServerOperations extends Remote {
      * @throws RemoteException
      */
     void writeFile(int serverFd, byte[] data) throws RemoteException;
+
+    /**
+     * Close a temporary file on the server
+     * 
+     * @param serverFd File descriptor of the file in the server
+     * @throws RemoteException
+     */
+    void closeFile(int serverFd) throws RemoteException;
 
     /**
      * Remove a file on the server
