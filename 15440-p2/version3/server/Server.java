@@ -234,5 +234,6 @@ public class Server extends UnicastRemoteObject implements ServerOperations {
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
+        System.out.println("Server is running at " + rootdir + " on port " + port);
     }
 }
